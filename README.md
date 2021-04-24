@@ -42,6 +42,12 @@ to "mount" shared folders under a user's home folder let's say
 
 The default port number is 6767.
 
+@TODO: should a different port number be specified for TLS?
+=> actually, should use TLS by default with a self-signed certificate,
+with a prompt to add to trust store on the client side, like SSH
+@TODO: might be useful to allow key-based authentication, like SSH
+(client-cert TLS auth)
+
 Server
 ===
 

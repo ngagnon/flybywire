@@ -31,12 +31,12 @@ end
 
 class RESP < RESPIO
     def initialize
-        3.times do
+        5.times do
             begin
                 @s = TCPSocket.new 'localhost', 6767
                 break
             rescue
-                sleep 1
+                sleep 0.100
             end
         end
 

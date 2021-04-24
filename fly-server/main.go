@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -70,6 +71,8 @@ var users map[string]user
 var policies []acp
 var globalLock sync.RWMutex
 
+// @TODO: each command should have a unit test to make sure it calls checkAuth,
+// and to make sure it returns -DENIED when checkAuth returned false
 // @TODO: protocol should just use single line feeds
 // @TODO: handle invalid inputs in the protocol
 // @TODO: custom config path
@@ -121,7 +124,8 @@ func handleSession(conn net.Conn) {
 
 	defer func() {
 		if err := recover(); err != nil && err != io.EOF {
-			fmt.Println(err)
+			fmt.Println("ERROR: handleSession:", err)
+			fmt.Println(string(debug.Stack()))
 		}
 	}()
 

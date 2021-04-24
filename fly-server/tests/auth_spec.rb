@@ -1,6 +1,5 @@
 require_relative 'resp'
 require_relative 'server'
-require_relative 'db'
 require 'fileutils'
 require 'tmpdir'
 
@@ -18,7 +17,7 @@ RSpec.describe 'Authentication' do
             FileUtils.rm_rf @dir
         end
 
-        it 'allows all operations (single-user mode)' do
+        xit 'allows all operations (single-user mode)' do
             @r.put_array('MKDIR', 'hello/world')
             line = @r.get_simple_str
             expect(line).to eq('OK')
@@ -31,15 +30,15 @@ RSpec.describe 'Authentication' do
                 expect(line).to eq('OK')
             end
 
-            it 'is created as admin' do
+            xit 'is created as admin' do
                 # @TODO
             end
 
-            it 'becomes current user' do
+            xit 'becomes current user' do
                 # @TODO
             end
 
-            it 'becomes impossible to connect unauthenticated' do
+            xit 'becomes impossible to connect unauthenticated' do
                 @r2 = RESP.new
 
                 @r2.put_array('MKDIR', 'hello/world')
@@ -54,10 +53,10 @@ RSpec.describe 'Authentication' do
     context 'with fly database' do
         before(:each) do
             @dir = Dir.mktmpdir 'fly'
-            FlyDB.setup @dir
-
             @s = Server.new @dir
             @r = RESP.new
+
+            # @TODO: create user, then kill server and restart it
         end
 
         after(:each) do
@@ -66,19 +65,19 @@ RSpec.describe 'Authentication' do
             FileUtils.rm_rf @dir
         end
 
-        it 'disallows unauthenticated access (multi-user mode)' do
+        xit 'disallows unauthenticated access' do
             @r.put_array('MKDIR', 'hello/world')
             line = @r.get_error_str
             expect(line).to eq('DENIED')
         end
 
-        it 'allows unauthenticated ping' do
+        xit 'allows unauthenticated ping' do
             @r.put_array('PING')
             line = @r.get_simple_str
             expect(line).to eq('PONG')
         end
 
-        it 'allows unauthenticated quit' do
+        xit 'allows unauthenticated quit' do
             @r.put_array('QUIT')
             line = @r.get_simple_str
             expect(line).to eq('OK')
@@ -87,7 +86,7 @@ RSpec.describe 'Authentication' do
         context 'user logs in' do
             # @TODO: auth command!
 
-            it 'is allowed to run commands' do
+            xit 'is allowed to run commands' do
                 @r.put_array('MKDIR', 'hello/world')
                 line = @r.get_simple_str
                 expect(line).to eq('OK')

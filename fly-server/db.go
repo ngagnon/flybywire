@@ -12,11 +12,16 @@ import (
 )
 
 func readDatabase() {
+	users = make(map[string]user, 0)
+	policies = make([]acp, 0)
+
 	if found := readVersionFile(); found {
 		readUserDb()
 		readAccessDb()
-		singleUser = false
+		singleUser = len(users) == 0
 	} else {
+		// @TODO: write database on startup if it didn't already exist.
+		// We should have a unit test for that!
 		singleUser = true
 	}
 }
@@ -25,13 +30,13 @@ func readVersionFile() (found bool) {
 	versionPath := path.Join(dir, ".fly/version")
 	version, err := os.ReadFile(versionPath)
 
-	if err == os.ErrNotExist {
+	if errors.Is(err, os.ErrNotExist) {
 		found = false
 		return
 	}
 
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("ERROR: could not open version file:", err)
 		os.Exit(1)
 	}
 
@@ -58,8 +63,6 @@ func readUserDb() {
 	csv := csv.NewReader(f)
 	csv.ReuseRecord = true
 	csv.FieldsPerRecord = 4
-
-	users = make(map[string]user, 0)
 
 	// Skip the header
 	_, err = csv.Read()
@@ -154,8 +157,6 @@ func readAccessDb() {
 	csv := csv.NewReader(f)
 	csv.ReuseRecord = true
 	csv.FieldsPerRecord = 4
-
-	policies = make([]acp, 0)
 
 	// Skip the header
 	_, err = csv.Read()

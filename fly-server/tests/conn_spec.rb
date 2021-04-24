@@ -50,7 +50,8 @@ RSpec.describe 'Connection' do
                 b.put_array("MKDIR", "world")
             end
 
-            sleep 1
+            @r.get_simple_str
+            @r.get_simple_str
 
             newdir = File.join(@dir, 'hello')
             expect(Dir.exist? newdir).to be true
