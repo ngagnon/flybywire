@@ -12,6 +12,11 @@ func handleAddUser(args []string, s *session) {
 		return
 	}
 
+	if !checkAdmin(s) {
+		s.writer.writeError("DENIED", "You are not allowed to manage users.")
+		return
+	}
+
 	username := args[0]
 	password := []byte(args[1])
 
@@ -55,6 +60,42 @@ func handleAddUser(args []string, s *session) {
 }
 
 func handleWhoAmI(args []string, s *session) {
+	if s.user == "" {
+		s.writer.writeNull()
+	} else {
+		s.writer.writeSimpleString(s.user)
+	}
+}
+
+func handleShowUser(args []string, s *session) {
+	if len(args) != 1 {
+		s.writer.writeError("ERR", "Command SHOWUSER expects exactly 1 argument")
+		return
+	}
+
+	if !checkAdmin(s) {
+		s.writer.writeError("DENIED", "You are not allowed to manage users.")
+		return
+	}
+
+	username := args[0]
+
+	globalLock.RLock()
+	defer globalLock.RUnlock()
+
+	user, ok := users[username]
+
+	if !ok {
+		s.writer.writeError("NOTFOUND", "User not found")
+		return
+	}
+
+	result := make(map[string]respValue)
+	result["username"] = respValue{valueType: RespSimpleString, value: user.username}
+	result["chroot"] = respValue{valueType: RespSimpleString, value: user.chroot}
+	result["admin"] = respValue{valueType: RespBoolean, value: user.admin}
+
+	s.writer.writeMap(result)
 }
 
 func updateUsers(applyChanges func()) {

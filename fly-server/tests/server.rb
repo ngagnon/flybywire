@@ -1,6 +1,7 @@
 class Server
     def initialize(dir = '.')
         @pid = spawn("../fly-server #{dir}")
+        puts "server spawned"
     end
 
     def kill

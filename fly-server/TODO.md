@@ -1,0 +1,6 @@
+- Each command should have a unit test to make sure it calls checkAuth, and to make sure it returns -DENIED when checkAuth returned false (use bytes.Buffer?)
+- Refactor protocol serialization stuff into resp.go
+- We should accept simple strings and nulls when reading command arguments
+- Handle invalid inputs in the protocol
+- Allow for a custom config path (instead of .fly)
+- Should allow you to pass a single file instead of a dir (for quickly sharing a file)

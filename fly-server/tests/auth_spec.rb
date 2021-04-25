@@ -30,11 +30,13 @@ RSpec.describe 'Authentication' do
                 expect(line).to eq('OK')
             end
 
-            xit 'is created as admin' do
+            it 'is created as admin' do
                 @r.put_array('SHOWUSER', 'example')
                 data = @r.get_map
-                expect(data[:username]).to eq('example')
-                expect(data[:admin]).to eq(true)
+                expect(data['username'][0]).to eq(:simple_string)
+                expect(data['username'][1]).to eq('example')
+                expect(data['admin'][0]).to eq(:bool)
+                expect(data['admin'][1]).to eq(true)
             end
 
             it 'becomes current user' do
@@ -48,7 +50,7 @@ RSpec.describe 'Authentication' do
 
                 @r2.put_array('MKDIR', 'hello/world')
                 line = @r2.get_error_str
-                expect(line).to eq('DENIED')
+                expect(line).to start_with('DENIED')
 
                 @r2.close
             end
@@ -56,42 +58,90 @@ RSpec.describe 'Authentication' do
     end
 
     context 'with fly database' do
-        before(:each) do
+        before(:all) do
             @dir = Dir.mktmpdir 'fly'
             @s = Server.new @dir
             @r = RESP.new
 
-            # @TODO: create user, then kill server and restart it
+            @r.put_array('ADDUSER', 'example', 'supersecret')
+            @r.get_next
+
+            @r.put_array('QUIT')
+            @r.get_next
+
+            @r.close
+            @s.kill
+
+            @s = Server.new @dir
         end
 
-        after(:each) do
-            @r.close
+        after(:all) do
             @s.kill
             FileUtils.rm_rf @dir
         end
 
-        xit 'disallows unauthenticated access' do
-            @r.put_array('MKDIR', 'hello/world')
-            line = @r.get_error_str
-            expect(line).to eq('DENIED')
+        before(:each) do
+            @r = RESP.new
         end
 
-        xit 'allows unauthenticated ping' do
+        after(:each) do
+            @r.close
+        end
+
+        it 'disallows unauthenticated access' do
+            @r.put_array('MKDIR', 'hello/world')
+            line = @r.get_error_str
+            expect(line).to start_with('DENIED')
+        end
+
+        it 'allows unauthenticated ping' do
             @r.put_array('PING')
             line = @r.get_simple_str
             expect(line).to eq('PONG')
         end
 
-        xit 'allows unauthenticated quit' do
+        it 'allows unauthenticated quit' do
             @r.put_array('QUIT')
             line = @r.get_simple_str
             expect(line).to eq('OK')
         end
 
-        context 'user logs in' do
-            # @TODO: auth command!
+        describe 'AUTH' do
+            it 'returns OK' do
+                @r.put_array('AUTH', 'PWD', 'example', 'supersecret')
+                line = @r.get_simple_str
+                expect(line).to eq('OK')
+            end
 
-            xit 'is allowed to run commands' do
+            it 'logs in the user' do
+                @r.put_array('AUTH', 'PWD', 'example', 'supersecret')
+                line = @r.get_simple_str
+                expect(line).to eq('OK')
+
+                @r.put_array('WHOAMI')
+                (type, val) = @r.get_next
+                expect(type).to eq(:simple_string)
+                expect(val).to eq('example')
+            end
+
+            it 'verifies the supplied password' do
+                @r.put_array('AUTH', 'PWD', 'example', 'wrongpassword')
+                line = @r.get_error_str
+                expect(line).to start_with('DENIED')
+
+                @r.put_array('WHOAMI')
+                (type, val) = @r.get_next
+                expect(type).to eq(:null)
+            end
+        end
+
+        context 'user logged in' do
+            before(:each) do
+                @r.put_array('AUTH', 'PWD', 'example', 'supersecret')
+                @r.get_next
+            end
+
+            it 'is allowed to run commands' do
                 @r.put_array('MKDIR', 'hello/world')
                 line = @r.get_simple_str
                 expect(line).to eq('OK')

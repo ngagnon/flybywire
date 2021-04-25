@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -35,12 +36,30 @@ type command struct {
 	args    []string
 }
 
+type respType int
+
+const (
+	RespNull respType = iota
+	RespBulkString
+	RespSimpleString
+	RespErrorString
+	RespBoolean
+	RespMap
+)
+
+type respValue struct {
+	valueType respType
+	value     interface{}
+}
+
 var commandHandlers = map[string]commandHandler{
-	"PING":    handlePing,
-	"QUIT":    handleQuit,
-	"MKDIR":   handleMkdir,
-	"ADDUSER": handleAddUser,
-	"WHOAMI":  handleWhoAmI,
+	"PING":     handlePing,
+	"QUIT":     handleQuit,
+	"MKDIR":    handleMkdir,
+	"ADDUSER":  handleAddUser,
+	"WHOAMI":   handleWhoAmI,
+	"SHOWUSER": handleShowUser,
+	"AUTH":     handleAuth,
 }
 
 var dir string
@@ -49,11 +68,6 @@ var users map[string]user
 var policies []acp
 var globalLock sync.RWMutex
 
-// @TODO: each command should have a unit test to make sure it calls checkAuth,
-// and to make sure it returns -DENIED when checkAuth returned false (use bytes.Buffer?)
-// @TODO: handle invalid inputs in the protocol
-// @TODO: custom config path
-// @TODO: should allow you to pass a single file instead of a dir
 func main() {
 	port := flag.Int("port", 6767, "TCP port to listen on")
 	flag.Parse()
@@ -205,6 +219,36 @@ func (w *writer) writeError(code string, msg string) {
 
 func (w *writer) writeOK() {
 	w.writeSimpleString("OK")
+}
+
+func (w *writer) writeNull() {
+	fmt.Fprint(w, "_\n")
+}
+
+func (w *writer) writeBool(b bool) {
+	if b {
+		fmt.Fprint(w, "1\n")
+	} else {
+		fmt.Fprint(w, "0\n")
+	}
+}
+
+func (w *writer) writeMap(m map[string]respValue) {
+	fmt.Fprintf(w, "%%%d\n", len(m))
+
+	for k, v := range m {
+		w.writeSimpleString(k)
+
+		switch v.valueType {
+		case RespSimpleString:
+			w.writeSimpleString(v.value.(string))
+		case RespBoolean:
+			w.writeBool(v.value.(bool))
+		default:
+			msg := fmt.Sprintf("writeMap: Unsupported RESP type: %d", v.valueType)
+			panic(errors.New(msg))
+		}
+	}
 }
 
 func (r *reader) Read(p []byte) (int, error) {

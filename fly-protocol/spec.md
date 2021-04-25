@@ -64,7 +64,7 @@ Pings the server (could be useful for keepalive).
 
 Response:
 
-+OK
++PONG<LF>
 
 QUIT
 ---
@@ -154,6 +154,10 @@ Usage: TOUCH path
 
 Sets the last modified time of a file to now.
 
+Response:
+
++OK
+
 User Administration
 ===
 
@@ -196,7 +200,7 @@ Response:
 +chroot<LF>
 _<LF>
 +admin<LF>
-#t<LF>
+1<LF>
 
 ADDUSER
 ---
