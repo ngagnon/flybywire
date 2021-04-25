@@ -1,10 +1,10 @@
 package main
 
 func handlePing(args []string, s *session) {
-	s.writer.Write([]byte("+PONG\r\n"))
+	s.writer.writeSimpleString("PONG")
 }
 
 func handleQuit(args []string, s *session) {
 	s.terminated = true
-	s.writer.Write([]byte("+OK\r\n"))
+	s.writer.writeOK()
 }

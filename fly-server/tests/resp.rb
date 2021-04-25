@@ -2,19 +2,19 @@ require 'socket'
 
 class RESPIO
     def puts(s)
-        if !s.end_with? "\r\n"
-            s = s + "\r\n"
+        if !s.end_with? "\n"
+            s = s + "\n"
         end
 
         @s.puts s
     end
 
     def put_array(*items)
-        @s.puts "*#{items.length}\r\n"
+        @s.puts "*#{items.length}\n"
 
         items.each do |s|
-            @s.puts "$#{s.length}\r\n"
-            @s.puts "#{s}\r\n"
+            @s.puts "$#{s.length}\n"
+            @s.puts "#{s}\n"
         end
     end
 end
@@ -55,16 +55,16 @@ class RESP < RESPIO
     end
 
     def get_simple_str()
-        line = @s.gets("\r\n")
+        line = @s.gets("\n")
         line.delete_prefix!("+")
-        line.delete_suffix!("\r\n")
+        line.delete_suffix!("\n")
         line
     end
 
     def get_error_str()
-        line = @s.gets("\r\n")
+        line = @s.gets("\n")
         line.delete_prefix!("-")
-        line.delete_suffix!("\r\n")
+        line.delete_suffix!("\n")
         line
     end
 

@@ -8,15 +8,14 @@ import (
 
 func handleMkdir(args []string, s *session) {
 	if len(args) != 1 {
-		msg := "-ERR Command MKDIR expects exactly one argument\r\n"
-		s.writer.Write([]byte(msg))
+		s.writer.writeError("ERR", "Command MKDIR expects exactly one argument")
 		return
 	}
 
 	vPath := "/" + strings.Trim(args[0], "/")
 
 	if !checkAuth(s, vPath, true) {
-		s.writer.Write([]byte("-DENIED\r\n"))
+		s.writer.writeError("DENIED", "Access denied")
 		return
 	}
 
@@ -26,5 +25,5 @@ func handleMkdir(args []string, s *session) {
 		panic(err)
 	}
 
-	s.writer.Write([]byte("+OK\r\n"))
+	s.writer.writeOK()
 }

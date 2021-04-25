@@ -28,29 +28,6 @@ type session struct {
 	writer     *writer
 }
 
-type user struct {
-	username string
-	password []byte
-	chroot   string
-	admin    bool
-}
-
-type access rune
-
-const (
-	Denied access = '_'
-	Read   access = 'R'
-	Write  access = 'W'
-)
-
-type acp struct {
-	name       string
-	users      []string
-	paths      []string
-	fileAccess access
-	acpAccess  access
-}
-
 type commandHandler func([]string, *session)
 
 type command struct {
@@ -63,6 +40,7 @@ var commandHandlers = map[string]commandHandler{
 	"QUIT":    handleQuit,
 	"MKDIR":   handleMkdir,
 	"ADDUSER": handleAddUser,
+	"WHOAMI":  handleWhoAmI,
 }
 
 var dir string
@@ -72,8 +50,7 @@ var policies []acp
 var globalLock sync.RWMutex
 
 // @TODO: each command should have a unit test to make sure it calls checkAuth,
-// and to make sure it returns -DENIED when checkAuth returned false
-// @TODO: protocol should just use single line feeds
+// and to make sure it returns -DENIED when checkAuth returned false (use bytes.Buffer?)
 // @TODO: handle invalid inputs in the protocol
 // @TODO: custom config path
 // @TODO: should allow you to pass a single file instead of a dir
@@ -97,6 +74,12 @@ func main() {
 	}
 
 	dir = flag.Arg(0)
+
+	if stat, err := os.Stat(dir); os.IsNotExist(err) || !stat.IsDir() {
+		fmt.Println("ERROR: root directory not found:", dir)
+		os.Exit(1)
+	}
+
 	readDatabase()
 
 	for {
@@ -148,81 +131,57 @@ func parseCommand(r *bufio.Reader, writer *writer) command {
 			}
 		}
 
-		if bytes.HasPrefix(line, []byte("*")) {
-			var n int
+		if !bytes.HasPrefix(line, []byte("*")) {
+			msg := fmt.Sprintf("Protocol error: unexpected symbol '%c'", rune(line[0]))
+			writer.writeError("ERR", msg)
+			continue
+		}
 
-			line = bytes.TrimPrefix(line, []byte("*"))
+		var n int
 
-			if n, err = strconv.Atoi(string(line)); err != nil {
+		line = bytes.TrimPrefix(line, []byte("*"))
+
+		if n, err = strconv.Atoi(string(line)); err != nil {
+			panic(err)
+		}
+
+		arr := make([]string, n)
+
+		for i := 0; i < n; i++ {
+			line = readLine(r)
+			line = bytes.TrimPrefix(line, []byte("$"))
+
+			var len int
+
+			if len, err = strconv.Atoi(string(line)); err != nil {
 				panic(err)
 			}
 
-			arr := make([]string, n)
+			buf := make([]byte, len)
+			io.ReadFull(r, buf)
 
-			for i := 0; i < n; i++ {
-				line = readLine(r)
-				line = bytes.TrimPrefix(line, []byte("$"))
-
-				var len int
-
-				if len, err = strconv.Atoi(string(line)); err != nil {
-					panic(err)
-				}
-
-				var b1, b2 byte
-
-				buf := make([]byte, len)
-				io.ReadFull(r, buf)
-				b1, _ = r.ReadByte()
-				b2, _ = r.ReadByte()
-
-				if b1 != '\r' || b2 != '\n' {
-					// @TODO: return syntax error
-				}
-
-				arr[i] = string(buf)
+			if b, _ := r.ReadByte(); b != '\n' {
+				// @TODO: return syntax error
 			}
 
-			if handler, ok := getCommandHandler(arr[0]); ok {
-				return command{
-					handler: handler,
-					args:    arr[1:],
-				}
-			} else {
-				fmt.Fprintf(writer, "-ERR Unknown command '%s'\r\n", arr[0])
+			arr[i] = string(buf)
+		}
+
+		if handler, ok := getCommandHandler(arr[0]); ok {
+			return command{
+				handler: handler,
+				args:    arr[1:],
 			}
 		} else {
-			fields := strings.Fields(string(line))
-
-			if len(fields) > 0 {
-				if handler, ok := getCommandHandler(fields[0]); ok {
-					return command{
-						handler: handler,
-						args:    fields[1:],
-					}
-				} else {
-					fmt.Fprintf(writer, "-ERR Unknown command '%s'\r\n", fields[0])
-				}
-			} else {
-				fmt.Fprint(writer, "-ERR Protocol error\r\n")
-			}
+			msg := fmt.Sprintf("Unknown command '%s'", arr[0])
+			writer.writeError("ERR", msg)
 		}
 	}
 }
 
 func readLine(r *bufio.Reader) (line []byte) {
-	for {
-		var data []byte
-
-		data, _ = r.ReadBytes('\n')
-		line = append(line, data...)
-
-		if bytes.HasSuffix(line, []byte("\r\n")) {
-			break
-		}
-	}
-
-	line = bytes.TrimSuffix(line, []byte("\r\n"))
+	line, _ = r.ReadBytes('\n')
+	line = bytes.TrimRight(line, "\n")
 	return
 }
 
@@ -234,6 +193,18 @@ func (w *writer) Write(p []byte) (int, error) {
 	}
 
 	return n, nil
+}
+
+func (w *writer) writeSimpleString(s string) {
+	fmt.Fprintf(w, "+%s\n", s)
+}
+
+func (w *writer) writeError(code string, msg string) {
+	fmt.Fprintf(w, "-%s %s\n", code, msg)
+}
+
+func (w *writer) writeOK() {
+	w.writeSimpleString("OK")
 }
 
 func (r *reader) Read(p []byte) (int, error) {

@@ -11,6 +11,29 @@ import (
 	"strings"
 )
 
+type user struct {
+	username string
+	password []byte
+	chroot   string
+	admin    bool
+}
+
+type access rune
+
+const (
+	Denied access = '_'
+	Read   access = 'R'
+	Write  access = 'W'
+)
+
+type acp struct {
+	name       string
+	users      []string
+	paths      []string
+	fileAccess access
+	acpAccess  access
+}
+
 func readDatabase() {
 	users = make(map[string]user, 0)
 	policies = make([]acp, 0)
@@ -20,8 +43,17 @@ func readDatabase() {
 		readAccessDb()
 		singleUser = len(users) == 0
 	} else {
-		// @TODO: write database on startup if it didn't already exist.
-		// We should have a unit test for that!
+		dbFolder := path.Join(dir, ".fly")
+
+		if err := os.MkdirAll(dbFolder, 0700); err != nil {
+			fmt.Println("ERROR: could not create FlyDB folder:", err)
+			os.Exit(1)
+		}
+
+		writeVersionFile()
+		writeUserDb()
+		writeAccessDb()
+
 		singleUser = true
 	}
 }
@@ -49,6 +81,15 @@ func readVersionFile() (found bool) {
 	}
 
 	return
+}
+
+func writeVersionFile() {
+	versionPath := path.Join(dir, ".fly/version")
+
+	if err := os.WriteFile(versionPath, []byte("1\n"), 0600); err != nil {
+		fmt.Println("ERROR: could not create new FlyDB file:", err)
+		os.Exit(1)
+	}
 }
 
 func readUserDb() {
@@ -97,7 +138,7 @@ func readUserDb() {
 
 func writeUserDb() {
 	tmpPath := path.Join(dir, ".fly/users.csv~")
-	f, err := os.Create(tmpPath)
+	f, err := os.OpenFile(tmpPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 
 	if err != nil {
 		fmt.Println("ERROR: couldn't open FlyDB for writing:", err)
@@ -193,6 +234,56 @@ func readAccessDb() {
 	}
 
 	// @TODO: validate integrity?
+}
+
+func writeAccessDb() {
+	tmpPath := path.Join(dir, ".fly/acp.csv~")
+	f, err := os.OpenFile(tmpPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+
+	if err != nil {
+		fmt.Println("ERROR: couldn't open FlyDB for writing:", err)
+		os.Exit(1)
+	}
+
+	defer f.Close()
+	csv := csv.NewWriter(f)
+
+	if err := csv.Write([]string{"rule", "users", "paths", "allow"}); err != nil {
+		fmt.Println("ERROR: couldn't write to FlyDB:", err)
+		os.Exit(1)
+	}
+
+	records := make([][]string, len(policies))
+	i := 0
+
+	for _, rule := range policies {
+		userList := "*"
+
+		if rule.users != nil {
+			userList = strings.Join(rule.users, ":")
+		}
+
+		records[i] = []string{
+			rule.name,
+			userList,
+			strings.Join(rule.paths, ":"),
+			string([]rune{rune(rule.fileAccess), rune(rule.acpAccess)}),
+		}
+
+		i++
+	}
+
+	if err = csv.WriteAll(records); err != nil {
+		fmt.Println("ERROR: couldn't write to FlyDB:", err)
+		os.Exit(1)
+	}
+
+	finalPath := strings.TrimRight(tmpPath, "~")
+
+	if err = os.Rename(tmpPath, finalPath); err != nil {
+		fmt.Println("ERROR: couldn't write to FlyDB:", err)
+		os.Exit(1)
+	}
 }
 
 func parseAcpUsers(s string) []string {

@@ -17,7 +17,7 @@ RSpec.describe 'Authentication' do
             FileUtils.rm_rf @dir
         end
 
-        xit 'allows all operations (single-user mode)' do
+        it 'allows all operations (single-user mode)' do
             @r.put_array('MKDIR', 'hello/world')
             line = @r.get_simple_str
             expect(line).to eq('OK')
@@ -31,14 +31,19 @@ RSpec.describe 'Authentication' do
             end
 
             xit 'is created as admin' do
-                # @TODO
+                @r.put_array('SHOWUSER', 'example')
+                data = @r.get_map
+                expect(data[:username]).to eq('example')
+                expect(data[:admin]).to eq(true)
             end
 
-            xit 'becomes current user' do
-                # @TODO
+            it 'becomes current user' do
+                @r.put_array('WHOAMI')
+                line = @r.get_simple_str
+                expect(line).to eq('example')
             end
 
-            xit 'becomes impossible to connect unauthenticated' do
+            it 'becomes impossible to connect unauthenticated' do
                 @r2 = RESP.new
 
                 @r2.put_array('MKDIR', 'hello/world')

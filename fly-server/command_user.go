@@ -8,8 +8,7 @@ import (
 
 func handleAddUser(args []string, s *session) {
 	if len(args) != 2 {
-		msg := "-ERR Command ADDUSER expects exactly 2 arguments\r\n"
-		s.writer.Write([]byte(msg))
+		s.writer.writeError("ERR", "Command ADDUSER expects exactly 2 arguments")
 		return
 	}
 
@@ -17,24 +16,24 @@ func handleAddUser(args []string, s *session) {
 	password := []byte(args[1])
 
 	if len(username) < 1 {
-		s.writer.Write([]byte("+ERR Minimum username length is 1\r\n"))
+		s.writer.writeError("ERR", "Minimum username length is 1")
 		return
 	}
 
 	if len(username) > 32 {
-		s.writer.Write([]byte("+ERR Maximum username length is 32\r\n"))
+		s.writer.writeError("ERR", "Maximum username length is 32")
 		return
 	}
 
 	if matched, err := regexp.Match("^[a-z_]([a-z0-9_-]{0,31})$", []byte(username)); !matched || err != nil {
-		s.writer.Write([]byte("+ERR Invalid username\r\n"))
+		s.writer.writeError("ERR", "Invalid username")
 		return
 	}
 
 	hash, err := bcrypt.GenerateFromPassword(password, 12)
 
 	if err != nil {
-		s.writer.Write([]byte("+ERR Unexpected error while generating hash\r\n"))
+		s.writer.writeError("ERR", "Unexpected error while generating hash")
 		return
 	}
 
@@ -52,7 +51,10 @@ func handleAddUser(args []string, s *session) {
 		}
 	})
 
-	s.writer.Write([]byte("+OK\r\n"))
+	s.writer.writeOK()
+}
+
+func handleWhoAmI(args []string, s *session) {
 }
 
 func updateUsers(applyChanges func()) {

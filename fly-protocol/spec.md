@@ -1,3 +1,30 @@
+Data Types
+===
+
+Simple string
+---
+
++blah blah blah<LF>
+
+Error string
+---
+
+-blah blah blah<LF>
+
+Bulk string
+---
+
+Dollar sign, followed by length of string, followed by line feed
+Then the string, followed by a final line feed.
+
+$5<LF>
+hello<LF>
+
+Null
+---
+
+_<LF>
+
 Connection Management
 ===
 
@@ -26,7 +53,7 @@ When already authenticated, returns a token valid for 5 minutes that the client 
 
 Response:
 
-Bulk string
+Bulk string with the token in it
 
 PING
 ---
@@ -45,6 +72,10 @@ QUIT
 Usage: QUIT
 
 Terminated the connection.
+
+Response:
+
++OK
 
 File Management
 ===
@@ -126,6 +157,23 @@ Sets the last modified time of a file to now.
 User Administration
 ===
 
+WHOAMI
+---
+
+Usage: WHOAMI
+
+Returns who is the currently authenticated user.
+
+Response:
+
+Simple string when currently logged-in:
+
++john<LF>
+
+Null when not logged-in:
+
+_<LF>
+
 LISTUSER
 ---
 
@@ -139,6 +187,16 @@ SHOWUSER
 Usage: SHOWUSER name
 
 Shows extra information about the user (whether he's admin, what's the chroot)
+
+Response:
+
+%3<LF>
++username<LF>
++john<LF>
++chroot<LF>
+_<LF>
++admin<LF>
+#t<LF>
 
 ADDUSER
 ---
