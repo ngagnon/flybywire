@@ -83,12 +83,12 @@ class RESP < RESPIO
             end
 
             return [:map, map]
-        elsif line == '1' || line == '0'
-            return [:bool, line == '1']
+        elsif line.start_with? '#'
+            return [:bool, line[1] == 't']
         elsif line == '_'
             return [:null, nil]
         else
-            raise 'get_next: illegal data type'
+            raise 'get_next: illegal data type: ' + line[0]
         end
     end
 

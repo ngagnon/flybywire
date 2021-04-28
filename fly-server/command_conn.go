@@ -1,7 +1,7 @@
 package main
 
 func handlePing(args []string, s *session) error {
-	return s.writeSimpleString("PONG")
+	return s.writeString("PONG")
 }
 
 func handleQuit(args []string, s *session) error {

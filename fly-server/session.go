@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -26,20 +25,18 @@ type protocolError struct {
 	msg string
 }
 
-type respType int
+type respValue interface {
+	writeTo(io.Writer) error
+}
 
-const (
-	RespNull respType = iota
-	RespBulkString
-	RespSimpleString
-	RespErrorString
-	RespBoolean
-	RespMap
-)
+type respNull struct{}
 
-type respValue struct {
-	valueType respType
-	value     interface{}
+type respBool struct {
+	val bool
+}
+
+type respString struct {
+	val string
 }
 
 func newSession(conn net.Conn) *session {
@@ -151,9 +148,12 @@ func (s *session) Write(p []byte) (int, error) {
 	return s.writer.Write(p)
 }
 
-func (s *session) writeSimpleString(str string) (err error) {
-	_, err = fmt.Fprintf(s, "+%s\n", str)
-	return
+func (s *session) write(val respValue) error {
+	return val.writeTo(s)
+}
+
+func (s *session) writeString(str string) (err error) {
+	return s.write(&respString{val: str})
 }
 
 func (s *session) writeError(code string, msg string) (err error) {
@@ -162,23 +162,11 @@ func (s *session) writeError(code string, msg string) (err error) {
 }
 
 func (s *session) writeOK() error {
-	return s.writeSimpleString("OK")
+	return s.writeString("OK")
 }
 
 func (s *session) writeNull() (err error) {
-	_, err = fmt.Fprint(s, "_\n")
-	return
-}
-
-func (s *session) writeBool(b bool) (err error) {
-	out := "0\n"
-
-	if b {
-		out = "1\n"
-	}
-
-	_, err = fmt.Fprint(s, out)
-	return
+	return s.write(&respNull{})
 }
 
 func (s *session) writeMap(m map[string]respValue) error {
@@ -189,22 +177,34 @@ func (s *session) writeMap(m map[string]respValue) error {
 	s.writer = buf
 
 	for k, v := range m {
-		s.writeSimpleString(k)
-
-		switch v.valueType {
-		case RespSimpleString:
-			s.writeSimpleString(v.value.(string))
-		case RespBoolean:
-			s.writeBool(v.value.(bool))
-		default:
-			msg := fmt.Sprintf("writeMap: Unsupported RESP type: %d", v.valueType)
-			panic(errors.New(msg))
-		}
+		s.writeString(k)
+		v.writeTo(buf)
 	}
 
 	s.writer = prevWriter
 	_, err := buf.WriteTo(prevWriter)
 	return err
+}
+
+func (b *respBool) writeTo(w io.Writer) error {
+	out := "#f\n"
+
+	if b.val {
+		out = "#t\n"
+	}
+
+	_, err := fmt.Fprint(w, out)
+	return err
+}
+
+func (s *respString) writeTo(w io.Writer) (err error) {
+	_, err = fmt.Fprintf(w, "+%s\n", s.val)
+	return
+}
+
+func (n *respNull) writeTo(w io.Writer) (err error) {
+	_, err = fmt.Fprint(w, "_\n")
+	return
 }
 
 func (err *protocolError) Error() string {

@@ -58,7 +58,7 @@ func handleWhoAmI(args []string, s *session) error {
 		return s.writeNull()
 	}
 
-	return s.writeSimpleString(s.user)
+	return s.writeString(s.user)
 }
 
 func handleShowUser(args []string, s *session) error {
@@ -82,9 +82,9 @@ func handleShowUser(args []string, s *session) error {
 	}
 
 	result := make(map[string]respValue)
-	result["username"] = respValue{valueType: RespSimpleString, value: user.username}
-	result["chroot"] = respValue{valueType: RespSimpleString, value: user.chroot}
-	result["admin"] = respValue{valueType: RespBoolean, value: user.admin}
+	result["username"] = &respString{val: user.username}
+	result["chroot"] = &respString{val: user.chroot}
+	result["admin"] = &respBool{val: user.admin}
 
 	return s.writeMap(result)
 }
