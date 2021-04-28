@@ -123,6 +123,10 @@ func readUserDb() {
 			abortDbCorrupt("users.csv", err)
 		}
 
+		// @TODO: make sure the username is valid
+		// @TODO: quickly check the password hashes with bcrypt.Cost()
+		// @TODO: make sure the chroot is a valid path
+		// @TODO: make sure admin is either "1" or "0"
 		newuser := user{
 			username: record[0],
 			password: []byte(record[1]),
@@ -132,8 +136,6 @@ func readUserDb() {
 
 		users[newuser.username] = newuser
 	}
-
-	// @TODO: validate integrity?
 }
 
 func writeUserDb() {
@@ -233,7 +235,7 @@ func readAccessDb() {
 		})
 	}
 
-	// @TODO: validate integrity?
+	// @TODO: validate integrity
 }
 
 func writeAccessDb() {

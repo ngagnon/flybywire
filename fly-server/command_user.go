@@ -6,40 +6,34 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func handleAddUser(args []string, s *session) {
+func handleAddUser(args []string, s *session) error {
 	if len(args) != 2 {
-		s.writer.writeError("ERR", "Command ADDUSER expects exactly 2 arguments")
-		return
+		return s.writeError("ERR", "Command ADDUSER expects exactly 2 arguments")
 	}
 
 	if !checkAdmin(s) {
-		s.writer.writeError("DENIED", "You are not allowed to manage users.")
-		return
+		return s.writeError("DENIED", "You are not allowed to manage users.")
 	}
 
 	username := args[0]
 	password := []byte(args[1])
 
 	if len(username) < 1 {
-		s.writer.writeError("ERR", "Minimum username length is 1")
-		return
+		return s.writeError("ERR", "Minimum username length is 1")
 	}
 
 	if len(username) > 32 {
-		s.writer.writeError("ERR", "Maximum username length is 32")
-		return
+		return s.writeError("ERR", "Maximum username length is 32")
 	}
 
 	if matched, err := regexp.Match("^[a-z_]([a-z0-9_-]{0,31})$", []byte(username)); !matched || err != nil {
-		s.writer.writeError("ERR", "Invalid username")
-		return
+		return s.writeError("ERR", "Invalid username")
 	}
 
 	hash, err := bcrypt.GenerateFromPassword(password, 12)
 
 	if err != nil {
-		s.writer.writeError("ERR", "Unexpected error while generating hash")
-		return
+		return s.writeError("ERR", "Unexpected error while generating hash")
 	}
 
 	updateUsers(func() {
@@ -56,26 +50,24 @@ func handleAddUser(args []string, s *session) {
 		}
 	})
 
-	s.writer.writeOK()
+	return s.writeOK()
 }
 
-func handleWhoAmI(args []string, s *session) {
+func handleWhoAmI(args []string, s *session) error {
 	if s.user == "" {
-		s.writer.writeNull()
-	} else {
-		s.writer.writeSimpleString(s.user)
+		return s.writeNull()
 	}
+
+	return s.writeSimpleString(s.user)
 }
 
-func handleShowUser(args []string, s *session) {
+func handleShowUser(args []string, s *session) error {
 	if len(args) != 1 {
-		s.writer.writeError("ERR", "Command SHOWUSER expects exactly 1 argument")
-		return
+		return s.writeError("ERR", "Command SHOWUSER expects exactly 1 argument")
 	}
 
 	if !checkAdmin(s) {
-		s.writer.writeError("DENIED", "You are not allowed to manage users.")
-		return
+		return s.writeError("DENIED", "You are not allowed to manage users.")
 	}
 
 	username := args[0]
@@ -86,8 +78,7 @@ func handleShowUser(args []string, s *session) {
 	user, ok := users[username]
 
 	if !ok {
-		s.writer.writeError("NOTFOUND", "User not found")
-		return
+		return s.writeError("NOTFOUND", "User not found")
 	}
 
 	result := make(map[string]respValue)
@@ -95,7 +86,7 @@ func handleShowUser(args []string, s *session) {
 	result["chroot"] = respValue{valueType: RespSimpleString, value: user.chroot}
 	result["admin"] = respValue{valueType: RespBoolean, value: user.admin}
 
-	s.writer.writeMap(result)
+	return s.writeMap(result)
 }
 
 func updateUsers(applyChanges func()) {

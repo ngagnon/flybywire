@@ -6,24 +6,22 @@ import (
 	"strings"
 )
 
-func handleMkdir(args []string, s *session) {
+func handleMkdir(args []string, s *session) error {
 	if len(args) != 1 {
-		s.writer.writeError("ERR", "Command MKDIR expects exactly one argument")
-		return
+		return s.writeError("ERR", "Command MKDIR expects exactly one argument")
 	}
 
 	vPath := "/" + strings.Trim(args[0], "/")
 
 	if !checkAuth(s, vPath, true) {
-		s.writer.writeError("DENIED", "Access denied")
-		return
+		return s.writeError("DENIED", "Access denied")
 	}
 
 	realPath := path.Join(dir, strings.TrimPrefix(vPath, "/"))
 
 	if err := os.MkdirAll(realPath, 0755); err != nil {
-		panic(err)
+		return err
 	}
 
-	s.writer.writeOK()
+	return s.writeOK()
 }

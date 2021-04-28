@@ -6,23 +6,20 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func handleAuth(args []string, s *session) {
+func handleAuth(args []string, s *session) error {
 	if len(args) == 0 {
-		s.writer.writeError("ERR", "Command AUTH expects at least 1 argument")
-		return
+		return s.writeError("ERR", "Command AUTH expects at least 1 argument")
 	}
 
 	authType := args[0]
 
 	if authType != "PWD" {
 		msg := fmt.Sprint("Unsupported AUTH type:", authType)
-		s.writer.writeError("ERR", msg)
-		return
+		return s.writeError("ERR", msg)
 	}
 
 	if len(args) != 3 {
-		s.writer.writeError("ERR", "Password authentication requires a username and a password")
-		return
+		return s.writeError("ERR", "Password authentication requires a username and a password")
 	}
 
 	username := args[1]
@@ -30,9 +27,9 @@ func handleAuth(args []string, s *session) {
 
 	if verifyPassword(username, password) {
 		s.user = username
-		s.writer.writeOK()
+		return s.writeOK()
 	} else {
-		s.writer.writeError("DENIED", "Authentication failed")
+		return s.writeError("DENIED", "Authentication failed")
 	}
 }
 

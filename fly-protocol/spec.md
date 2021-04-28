@@ -90,34 +90,66 @@ file size, and last modified time.
 
 Supports wildcards: * and **.
 
-UPLD
+OPEN
 ---
 
-Usage: UPLD path
+Usage: OPEN path R/W
 
-Uploads a file to the specified path. The server returns an ID,
-which the client then uses to send chunks to the server asynchronously.
+Opens the given file for reading (R) or writing (W) 
 
-CHUNK
+File descriptors are automatically closed after 1 minute of inactivity.
+
+New files are written to a temporary area, so they won't overwrite the
+original until you're done writing it.
+
+Response:
+
+On success, returns a file descriptor (integer):
+
+:22<LF>
+
+Can also return errors:
+
+-DENIED Access denied
+-TOOMANY There are too many open file descriptors
+
+SEND
 ---
 
-Usage: CHUNK id data
+Usage: SEND id data
 
-Sends a chunk for that particular file upload. 
+Writes a chunk of data to the given file descriptor
 
 Set data to NULL to indicate the end of the transfer.
 
 Response:
 
 +OK
+-CLOSED This file descriptor was closed
 
-DWNLD
+RECV
 ---
 
-Usage: DWNLD path
+Usage: RECV id max
 
-Downloads the file at the specified path. The server will
-return the file in chunks asynchronously.
+Reads up to `max` bytes of data from the given file descriptor.
+
+Response:
+
+On success, returns an array with the file descriptor as first element, and a bulk string as second element:
+
+*2<LF>
+:22<LF>
+$5<LF>
+Hello<LF>
+
+When there are no more bytes to read:
+
+-EOF
+
+Other responses:
+
+-CLOSED This file descriptor was closed
 
 MOVE
 ---
