@@ -1,4 +1,3 @@
-- Rename "bulk string" to "blob", "simple string" to "string", "error string" to "error"
 - Refactor the tests to only have 2 servers (one already configured, another empty)
 - We should accept simple strings and nulls when reading command arguments
 - To get the server out of single-user mode, we should use AUTH instead of ADDUSER, would make things less confusing

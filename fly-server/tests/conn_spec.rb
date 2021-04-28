@@ -25,13 +25,13 @@ RSpec.describe 'Connection' do
     describe 'PING' do
         it 'returns PONG' do
             @r.put_array('PING')
-            line = @r.get_simple_str
+            line = @r.get_string
             expect(line).to eq('PONG')
         end
 
         it 'is case insensitive' do
             @r.put_array('pinG')
-            line = @r.get_simple_str
+            line = @r.get_string
             expect(line).to eq('PONG')
         end
     end
@@ -39,7 +39,7 @@ RSpec.describe 'Connection' do
     describe 'QUIT' do
         it 'returns OK' do
             @r.put_array('QUIT')
-            line = @r.get_simple_str
+            line = @r.get_string
             expect(line).to eq('OK')
         end
 
@@ -50,8 +50,8 @@ RSpec.describe 'Connection' do
                 b.put_array("MKDIR", "world")
             end
 
-            @r.get_simple_str
-            @r.get_simple_str
+            @r.get_string
+            @r.get_string
 
             newdir = File.join(@dir, 'hello')
             expect(Dir.exist? newdir).to be true

@@ -1,21 +1,21 @@
 Data Types
 ===
 
-Simple string
+String
 ---
 
-+blah blah blah<LF>
++Lorem ipsum sit dolor amet<LF>
 
-Error string
+Error
 ---
 
--blah blah blah<LF>
+-CODE The super duper error message<LF>
 
-Bulk string
+Blob
 ---
 
 Dollar sign, followed by length of string, followed by line feed
-Then the string, followed by a final line feed.
+Then the raw binary data, followed by a final line feed.
 
 $5<LF>
 hello<LF>
@@ -53,7 +53,7 @@ When already authenticated, returns a token valid for 5 minutes that the client 
 
 Response:
 
-Bulk string with the token in it
+Blob with the token in it
 
 PING
 ---
@@ -136,7 +136,7 @@ Reads up to `max` bytes of data from the given file descriptor.
 
 Response:
 
-On success, returns an array with the file descriptor as first element, and a bulk string as second element:
+On success, returns an array with the file descriptor as first element, and a blob as second element:
 
 *2<LF>
 :22<LF>
@@ -202,7 +202,7 @@ Returns who is the currently authenticated user.
 
 Response:
 
-Simple string when currently logged-in:
+String when currently logged-in:
 
 +john<LF>
 

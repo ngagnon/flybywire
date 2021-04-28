@@ -60,23 +60,23 @@ class RESP < RESPIO
 
         if line.start_with? '+'
             line.delete_prefix!("+")
-            return [:simple_string, line]
+            return [:string, line]
         elsif line.start_with? '-'
             line.delete_prefix!("-")
-            return [:error_string, line]
+            return [:error, line]
         elsif line.start_with? '$'
             line.delete_prefix!("$")
             len = line.to_i
             s = @s.read(len)
             @s.gets("\n")
-            return [:bulk_string, s]
+            return [:blob, s]
         elsif line.start_with? '%'
             line.delete_prefix!("%")
             num_pairs = line.to_i
             map = {}
 
             num_pairs.times do
-                key = get_str()
+                key = get_str_or_blob()
                 val = get_next()
 
                 map[key] = val
@@ -92,41 +92,41 @@ class RESP < RESPIO
         end
     end
 
-    def get_simple_str()
+    def get_string()
         (type, val) = get_next()
 
-        if type != :simple_string
-            raise 'get_simple_str: did not get a simple string'
+        if type != :string
+            raise 'get_string: did not get a string'
         end
 
         val
     end
 
-    def get_error_str()
+    def get_error()
         (type, val) = get_next()
 
-        if type != :error_string
-            raise 'get_error_str: did not get an error string'
+        if type != :error
+            raise 'get_error: did not get an error'
         end
 
         val
     end
 
-    def get_bulk_str()
+    def get_blob()
         (type, val) = get_next()
 
-        if type != :bulk_string
-            raise 'get_bulk_str: did not get a bulk string'
+        if type != :blob
+            raise 'get_blob: did not get a blob'
         end
 
         val
     end
 
-    def get_str()
+    def get_str_or_blob()
         (type, val) = get_next()
 
-        if type != :bulk_string && type != :simple_string
-            raise 'get_str: did not get a string'
+        if type != :blob && type != :string
+            raise 'get_str_or_blob: did not get a string or a blob'
         end
 
         val

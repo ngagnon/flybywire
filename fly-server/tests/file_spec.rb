@@ -19,7 +19,7 @@ RSpec.describe 'File commands' do
     describe 'MKDIR' do
         before(:all) do
             @r.put_array('MKDIR', 'world')
-            @line = @r.get_simple_str
+            @line = @r.get_string
         end
 
         it 'returns OK' do
