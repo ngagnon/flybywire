@@ -1,5 +1,3 @@
-require_relative 'resp'
-require_relative 'server'
 require 'fileutils'
 require 'tmpdir'
 

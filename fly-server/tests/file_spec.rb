@@ -1,8 +1,3 @@
-require_relative 'resp'
-require_relative 'server'
-require 'fileutils'
-require 'tmpdir'
-
 RSpec.describe 'File commands' do
     describe 'MKDIR' do
         before(:all) do

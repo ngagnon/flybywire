@@ -16,6 +16,8 @@ GEM
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.10.0)
     rspec-support (3.10.2)
+    ruby-prof (1.4.3)
+    test-prof (1.0.3)
 
 PLATFORMS
   x86_64-darwin-20
@@ -23,6 +25,8 @@ PLATFORMS
 DEPENDENCIES
   bcrypt
   rspec
+  ruby-prof
+  test-prof
 
 BUNDLED WITH
    2.2.16

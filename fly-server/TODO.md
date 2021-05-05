@@ -1,9 +1,3 @@
-- Refactor the tests to only have 2 servers (one already configured, another empty)
-    - Move "no fly database" to single_user_spec.rb
-    - Rename config_spec.rb to cli_spec.rb
-    - Move "allow unauthenticated ping/quit" to conn_spec.rb
-    - In before :suite, automatically create a properly configured server.
-      Then create one authenticated connection, and one unauthenticated connection
 - Continue working on more commands (file, ACLs)
 - File streaming (prioritize command requests & responses!)
 - To get the server out of single-user mode, we should use AUTH instead of ADDUSER, would make things less confusing

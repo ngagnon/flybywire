@@ -1,8 +1,3 @@
-require 'resp'
-require 'server'
-require 'fileutils'
-require 'tmpdir'
-
 RSpec.describe 'Connection' do
     describe 'PING' do
         context 'authenticated' do
