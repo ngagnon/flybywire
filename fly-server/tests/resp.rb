@@ -30,10 +30,10 @@ class BufferedRESP < RESPIO
 end
 
 class RESP < RESPIO
-    def initialize
+    def initialize(port = 6767)
         5.times do
             begin
-                @s = TCPSocket.new 'localhost', 6767
+                @s = TCPSocket.new('localhost', port)
                 break
             rescue
                 sleep 0.100

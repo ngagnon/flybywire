@@ -4,60 +4,80 @@ require 'fileutils'
 require 'tmpdir'
 
 RSpec.describe 'Connection' do
-    before(:all) do
-        @dir = Dir.mktmpdir 'fly'
-        @s = Server.new @dir
-    end
-
-    after(:all) do
-        @s.kill
-        FileUtils.rm_rf @dir
-    end
-
-    before(:each) do
-        @r = RESP.new
-    end
-
-    after(:each) do
-        @r.close()
-    end
-
     describe 'PING' do
-        it 'returns PONG' do
-            @r.put_array('PING')
-            line = @r.get_string
-            expect(line).to eq('PONG')
+        context 'authenticated' do
+            it 'returns PONG' do
+                $admin.put_array('PING')
+                line = $admin.get_string
+                expect(line).to eq('PONG')
+            end
+        end
+
+        context 'unauthenticated' do
+            it 'returns PONG' do
+                $unauth.put_array('PING')
+                line = $unauth.get_string
+                expect(line).to eq('PONG')
+            end
         end
 
         it 'is case insensitive' do
-            @r.put_array('pinG')
-            line = @r.get_string
+            $unauth.put_array('pinG')
+            line = $unauth.get_string
             expect(line).to eq('PONG')
         end
     end
 
     describe 'QUIT' do
-        it 'returns OK' do
-            @r.put_array('QUIT')
-            line = @r.get_string
-            expect(line).to eq('OK')
-        end
-
-        it 'cancels all pipelined commands' do
-            @r.buffer do |b|
-                b.put_array("MKDIR", "hello")
-                b.put_array("QUIT")
-                b.put_array("MKDIR", "world")
+        context 'authenticated' do
+            before(:each) do
+                @r = RESP.new
+                @r.put_array('AUTH', 'PWD', 'example', 'supersecret')
+                @r.get_next
             end
 
-            @r.get_string
-            @r.get_string
+            after(:each) do
+                @r.close
+            end
 
-            newdir = File.join(@dir, 'hello')
-            expect(Dir.exist? newdir).to be true
+            it 'returns OK' do
+                @r.put_array('QUIT')
+                line = @r.get_string
+                expect(line).to eq('OK')
+            end
 
-            newdir = File.join(@dir, 'world')
-            expect(Dir.exist? newdir).to be false
+            it 'cancels all pipelined commands' do
+                @r.buffer do |b|
+                    b.put_array("MKDIR", "hello")
+                    b.put_array("QUIT")
+                    b.put_array("MKDIR", "world")
+                end
+
+                @r.get_string
+                @r.get_string
+
+                newdir = File.join($dir, 'hello')
+                expect(Dir.exist? newdir).to be true
+
+                newdir = File.join($dir, 'world')
+                expect(Dir.exist? newdir).to be false
+            end
+        end
+
+        context 'unauthenticated' do
+            before(:each) do
+                @r = RESP.new
+            end
+
+            after(:each) do
+                @r.close
+            end
+
+            it 'returns OK' do
+                @r.put_array('QUIT')
+                line = @r.get_string
+                expect(line).to eq('OK')
+            end
         end
     end
 end
