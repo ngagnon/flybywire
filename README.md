@@ -6,6 +6,7 @@ Its main goal is to fix some of the shortcomings of the FTP protocol
 - Having to open up multiple ports in your firewall
 - Can't send data & commands over the same connection
 - No way to administer the server directly via the protocol
+- No way to sync folder structure efficiently
 - Server shouldn't have to manage the client's current working directory
 
 @TODO: fly-on-s3?

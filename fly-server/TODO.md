@@ -1,8 +1,13 @@
 - Refactor the tests to only have 2 servers (one already configured, another empty)
-- We should accept simple strings and nulls when reading command arguments
+    - Move "no fly database" to single_user_spec.rb
+    - Rename config_spec.rb to cli_spec.rb
+    - Move "allow unauthenticated ping/quit" to conn_spec.rb
+    - In before :suite, automatically create a properly configured server.
+      Then create one authenticated connection, and one unauthenticated connection
+- Continue working on more commands (file, ACLs)
+- File streaming (prioritize command requests & responses!)
 - To get the server out of single-user mode, we should use AUTH instead of ADDUSER, would make things less confusing
 - Verify integrity of the databases when reading from them
-
 - Each command should have a unit test to make sure it calls checkAuth, and to make sure it returns -DENIED when checkAuth returned false (use bytes.Buffer?)
 - Handle invalid inputs in the protocol
 - Allow for a custom config path (instead of .fly)

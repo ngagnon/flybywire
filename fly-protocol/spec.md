@@ -75,6 +75,15 @@ Terminated the connection.
 
 Response:
 
+GETOPT
+---
+
+Usage: GETOPT key
+
+Gets a server option. Currently available options:
+
+- MaxChunkSize: returns the maximum chunk size that the server will accept
+
 +OK
 
 File Management
@@ -90,21 +99,41 @@ file size, and last modified time.
 
 Supports wildcards: * and **.
 
-OPEN
+STREAM
 ---
 
-Usage: OPEN path R/W
+Usage: STREAM R/W path maxChunkSize
 
 Opens the given file for reading (R) or writing (W) 
-
-File descriptors are automatically closed after 1 minute of inactivity.
 
 New files are written to a temporary area, so they won't overwrite the
 original until you're done writing it.
 
+When opening a file for reading, the server will immediately start
+sending chunks to the client via chunk responses:
+
+>streamID\n
+$length\n
+blob\n
+
+The ">" message type is a special stream message that wraps
+another value, usually a blob (or an error).
+
+maxChunkSize can be any value from 16KB to 16MB. It's only
+passed for reading mode.
+
+When opening the file for writing, the client is expected to
+send chunks to the server in the same format.
+
+If an error occurs and the transfer must be stopped, an error
+will be returned by the server:
+
+>streamID\n
+-ERR Error message\n
+
 Response:
 
-On success, returns a file descriptor (integer):
+On success, returns a stream ID:
 
 :22<LF>
 
@@ -113,43 +142,36 @@ Can also return errors:
 -DENIED Access denied
 -TOOMANY There are too many open file descriptors
 
-SEND
+SYNC
 ---
 
-Usage: SEND id data
+Usage: SYNC R/W path blockSize
 
-Writes a chunk of data to the given file descriptor
+Opens a file for syncing. Use R for reading, W for writing.
 
-Set data to NULL to indicate the end of the transfer.
+Returns a stream ID.
 
-Response:
+In reading mode, the client is expected to pass a blockSize.
+Then, send the checksums for all the blocks it already has.
+The last chunk it sends should be an +OK to signal the server
+that it can start streaming blocks. Then the server will stream
+blocks, and send NULL to terminate the stream.
 
-+OK
--CLOSED This file descriptor was closed
+In writing mode, the server will immediately start sending checksums
+to the client, and end with a last +OK chunk. This signals the client
+that it can start streaming blocks. It should send NULL as the
+last chunk to indicate that all the blocks were sent.
 
-RECV
+CLOSE
 ---
 
-Usage: RECV id max
+Usage:
 
-Reads up to `max` bytes of data from the given file descriptor.
+CLOSE streamID
 
-Response:
+Closes the given stream ID.
 
-On success, returns an array with the file descriptor as first element, and a blob as second element:
-
-*2<LF>
-:22<LF>
-$5<LF>
-Hello<LF>
-
-When there are no more bytes to read:
-
--EOF
-
-Other responses:
-
--CLOSED This file descriptor was closed
+Use this command when you wish to close a writing stream.
 
 MOVE
 ---
