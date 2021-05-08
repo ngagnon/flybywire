@@ -1,5 +1,4 @@
-- Extract resp-stuff, write test to make sure it can read its own writing
-- Tests shouldn't show the output of fly-server
+- Tests shouldn't show the output of fly-server (by default)
 - Reorganize into packages (e.g. commands, server)
 - Continue working on more commands (file, ACLs)
     - STREAM

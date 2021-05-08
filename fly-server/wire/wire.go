@@ -116,14 +116,14 @@ func readValue(r *bufio.Reader) (Value, error) {
 	b, err := r.ReadByte()
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrIO, err)
 	}
 
 	if b == '_' {
 		b, err := r.ReadByte()
 
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%w: %v", ErrIO, err)
 		}
 
 		if b != '\n' {
@@ -181,10 +181,16 @@ func handleBlob(r *bufio.Reader, size int) (*Blob, error) {
 	_, err := io.ReadFull(r, buf)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrIO, err)
 	}
 
-	if b, _ := r.ReadByte(); b != '\n' {
+	b, err := r.ReadByte()
+
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrIO, err)
+	}
+
+	if b != '\n' {
 		return nil, fmt.Errorf("%w: unexpected symbol %c, was expected new line", ErrFormat, rune(b))
 	}
 
@@ -225,7 +231,7 @@ func readLine(r *bufio.Reader) ([]byte, error) {
 	line, err := r.ReadBytes('\n')
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrIO, err)
 	}
 
 	line = bytes.TrimRight(line, "\n")
@@ -241,6 +247,10 @@ func NewString(val string) *String {
 	return &String{val: val}
 }
 
+func NewBlob(data []byte) *Blob {
+	return &Blob{Data: data}
+}
+
 func NewInteger(val int) *Integer {
 	return &Integer{Value: val}
 }
@@ -251,6 +261,14 @@ func NewBoolean(val bool) *Bool {
 
 func NewMap(m map[string]Value) *Map {
 	return &Map{m: m}
+}
+
+func NewArray(a []Value) *Array {
+	return &Array{Values: a}
+}
+
+func NewStreamHeader(id int) *StreamHeader {
+	return &StreamHeader{id: id}
 }
 
 func (b *Bool) WriteTo(w io.Writer) error {
