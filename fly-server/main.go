@@ -10,8 +10,7 @@ import (
 	"sync"
 )
 
-/* @TODO: command handler should return respValue, error */
-type commandHandler func([]string, *session) error
+type commandHandler func(args []respValue, session *session) (response respValue)
 
 var commandHandlers = map[string]commandHandler{
 	"PING":     handlePing,
@@ -57,6 +56,8 @@ func main() {
 
 	readDatabase()
 
+	log.Infof("Server started. Listening on port %d", *port)
+
 	for {
 		conn, err := ln.Accept()
 
@@ -81,28 +82,27 @@ func handleSession(conn net.Conn) {
 			break
 		}
 
-		// @TODO: nextCommand -> nextFrame
-		/*
-			type frame interface {
-				streamId *int // nil when not a stream chunk
-				val respValue
-			}
-		*/
-		cmd, err := session.nextCommand()
-		err = handleProtoError(err, session)
+		f, err := session.nextFrame()
 
 		if err != nil {
 			break
 		}
 
-		handler, ok := getCommandHandler(cmd.name)
+		if f.streamId == nil {
+			arr := f.val.(*respArray)
+			cmdName := string(arr.values[0].(*respBlob).val)
+			handler, ok := getCommandHandler(cmdName)
 
-		if ok {
-			/* @TODO: handle commands in a separate worker goroutine */
-			err = handler(cmd.args, session)
+			if ok {
+				/* @TODO: handle commands in a separate worker goroutine */
+				args := arr.values[1:]
+				response := handler(args, session)
+				session.out <- response
+			} else {
+				session.out <- newError("CMD", "Unknown command '%s'", cmdName)
+			}
 		} else {
-			msg := fmt.Sprintf("Unknown command '%s'", cmd.name)
-			err = session.writeError("ERR", msg)
+			/* @TODO: handle stream chunk */
 		}
 
 		if err != nil {
@@ -112,6 +112,7 @@ func handleSession(conn net.Conn) {
 
 	/* @TODO: force close all streams (cancel) */
 	/* @TODO: drain the out channel */
+	/* @TODO: abort the write goroutine */
 
 	if err != nil {
 		log.Debugf("Session aborted -- err=\"%v\"", err)
@@ -138,14 +139,6 @@ func handleWrites(writer io.Writer, out chan respValue, errChan chan error) {
 			return
 		}
 	}
-}
-
-func handleProtoError(err error, s *session) error {
-	if protoErr, ok := err.(*protocolError); ok {
-		err = s.writeError("ERR", protoErr.msg)
-	}
-
-	return err
 }
 
 func getCommandHandler(s string) (h commandHandler, ok bool) {

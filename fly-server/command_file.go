@@ -1,48 +1,63 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"strings"
 	"time"
 )
 
-func handleMkdir(args []string, s *session) error {
+func handleMkdir(args []respValue, s *session) respValue {
 	if len(args) != 1 {
-		return s.writeError("ERR", "Command MKDIR expects exactly one argument")
+		return newError("ARG", "Command MKDIR expects exactly one argument")
 	}
 
-	vPath := "/" + strings.Trim(args[0], "/")
+	pathBlob, ok := args[0].(*respBlob)
+
+	if !ok {
+		return newError("ARG", "Path should be a blob, got %s", args[0].name())
+	}
+
+	vPath := "/" + strings.Trim(string(pathBlob.val), "/")
 
 	if !checkAuth(s, vPath, true) {
-		return s.writeError("DENIED", "Access denied")
+		return newError("DENIED", "Access denied")
 	}
 
 	realPath := resolveVirtualPath(vPath)
 
 	if err := os.MkdirAll(realPath, 0755); err != nil {
-		// @TODO: write an error to the session (unexpected error)
-		return err
+		// @TODO: debug log
+		return newError("ERR", "Unexpected error occurred")
 	}
 
-	return s.writeOK()
+	return RespOK
 }
 
-func handleStream(args []string, s *session) error {
+func handleStream(args []respValue, s *session) respValue {
 	if len(args) != 2 {
-		return s.writeError("ERR", "Command STREAM expects exactly 2 arguments")
+		return newError("ARG", "Command STREAM expects exactly 2 arguments")
 	}
 
-	mode := args[0]
-	vPath := "/" + strings.TrimPrefix(args[1], "/")
+	mode, ok := args[0].(*respBlob)
 
-	if mode != "W" {
-		msg := fmt.Sprint("Unsupported mode:", mode)
-		return s.writeError("ERR", msg)
+	if !ok {
+		return newError("ARG", "Mode should be a blob, got %s", args[0].name())
+	}
+
+	pathBlob, ok := args[0].(*respBlob)
+
+	if !ok {
+		return newError("ARG", "Path should be a blob, got %s", args[0].name())
+	}
+
+	vPath := "/" + strings.TrimPrefix(string(pathBlob.val), "/")
+
+	if string(mode.val) != "W" {
+		return newError("ARG", "Unsupported mode: %s", mode.val)
 	}
 
 	if !checkAuth(s, vPath, true) {
-		return s.writeError("DENIED", "Access denied")
+		return newError("DENIED", "Access denied")
 	}
 
 	/* @TODO: check that the folder exists */
@@ -50,8 +65,8 @@ func handleStream(args []string, s *session) error {
 	f, err := os.CreateTemp("", "flytmp")
 
 	if err != nil {
-		// @TODO: write an error to the session (unexpected error)
-		return err
+		// @TODO: debug log
+		return newError("ERR", "Unexpected error occurred")
 	}
 
 	realPath := resolveVirtualPath(vPath)
@@ -68,12 +83,12 @@ func handleStream(args []string, s *session) error {
 
 	if !ok {
 		f.Close()
-		return s.writeError("TOOMANY", "Too many streams open")
+		return newError("TOOMANY", "Too many streams open")
 	}
 
 	go handleWriteStream(id, stream, s)
 
-	return s.writeInt(id)
+	return &respInteger{val: id}
 }
 
 func handleWriteStream(id int, s *stream, session *session) {

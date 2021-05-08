@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -29,20 +30,25 @@ type stream struct {
 	file      *os.File
 }
 
-type command struct {
-	name string
-	args []string
-}
-
-type protocolError struct {
-	msg string
+type frame struct {
+	streamId *int
+	val      respValue
 }
 
 type respValue interface {
 	writeTo(io.Writer) error
+	name() string
+}
+
+type respStreamHeader struct {
+	id int
 }
 
 type respNull struct{}
+
+type respArray struct {
+	values []respValue
+}
 
 type respBool struct {
 	val bool
@@ -50,6 +56,10 @@ type respBool struct {
 
 type respString struct {
 	val string
+}
+
+type respBlob struct {
+	val []byte
 }
 
 type respInteger struct {
@@ -65,6 +75,9 @@ type respMap struct {
 	m map[string]respValue
 }
 
+var ErrProtocol = errors.New("Protocol error")
+var RespOK = &respString{val: "OK"}
+
 func newSession(conn net.Conn) *session {
 	return &session{
 		terminated: false,
@@ -75,68 +88,142 @@ func newSession(conn net.Conn) *session {
 	}
 }
 
-func (s *session) nextCommand() (command, error) {
+// Returns a valid frame (command or stream)
+// Returns an error if an IO error occurred on read
+func (s *session) nextFrame() (frame, error) {
 	for {
-		numElems, err := readArrayHeader(s.reader)
+		val, err := readValue(s.reader)
+
+		if errors.Is(err, ErrProtocol) {
+			s.out <- newError("PROTO", err.Error())
+			continue
+		}
 
 		if err != nil {
-			return command{}, err
+			return frame{}, err
 		}
 
-		arr := make([]string, numElems)
+		if header, ok := val.(*respStreamHeader); ok {
+			payload, err := readValue(s.reader)
 
-		for i := 0; i < numElems; i++ {
-			size, err := readBlobHeader(s.reader)
+			if errors.Is(err, ErrProtocol) {
+				s.out <- newError("PROTO", err.Error())
+				continue
+			}
 
 			if err != nil {
-				return command{}, err
+				return frame{}, err
 			}
 
-			buf := make([]byte, size)
-			io.ReadFull(s.reader, buf)
-
-			if b, _ := s.reader.ReadByte(); b != '\n' {
-				msg := fmt.Sprintf("Protocol error: unexpected symbol '%c', was expecting new line", rune(b))
-				return command{}, &protocolError{msg: msg}
+			if _, isBlob := payload.(*respBlob); !isBlob {
+				msg := fmt.Sprintf("Protocol error: invalid stream frame, unexpected %s", payload.name())
+				s.out <- newError("PROTO", msg)
+				continue
 			}
 
-			arr[i] = string(buf)
+			return frame{streamId: &header.id, val: payload}, nil
 		}
 
-		return command{
-			name: arr[0],
-			args: arr[1:],
-		}, nil
+		if cmd, ok := val.(*respArray); ok {
+			if t := validCommand(cmd); t != "" {
+				msg := fmt.Sprintf("Protocol error: invalid command, unexpected %s", t)
+				s.out <- newError("PROTO", msg)
+				continue
+			}
+
+			return frame{val: cmd}, nil
+		}
+
+		msg := fmt.Sprintf("Protocol error: unexpected %s", val.name())
+		s.out <- newError("PROTO", msg)
 	}
 }
 
-func readArrayHeader(r *bufio.Reader) (count int, err error) {
-	return readSizeHeader(r, "*")
+func validCommand(arr *respArray) string {
+	for _, item := range arr.values {
+		if _, ok := item.(*respBlob); !ok {
+			return item.name()
+		}
+	}
+
+	return ""
 }
 
-func readBlobHeader(r *bufio.Reader) (count int, err error) {
-	return readSizeHeader(r, "$")
+func readValue(r *bufio.Reader) (respValue, error) {
+	b, err := r.ReadByte()
+
+	if err != nil {
+		return nil, err
+	}
+
+	if b == '>' || b == '*' || b == '$' {
+		size, err := readSize(r)
+
+		if err != nil {
+			return nil, fmt.Errorf("%w: %s", ErrProtocol, err)
+		}
+
+		switch b {
+		case '>':
+			return handleStreamHeader(size)
+		case '*':
+			return handleArray(r, size)
+		case '$':
+			return handleBlob(r, size)
+		}
+	}
+
+	return nil, fmt.Errorf("%w: unexpected symbol %c", ErrProtocol, rune(b))
 }
 
-func readSizeHeader(r *bufio.Reader, prefix string) (count int, err error) {
+func handleStreamHeader(id int) (*respStreamHeader, error) {
+	return &respStreamHeader{id: id}, nil
+}
+
+func handleArray(r *bufio.Reader, len int) (*respArray, error) {
+	arr := &respArray{
+		values: make([]respValue, len),
+	}
+
+	for i := 0; i < len; i++ {
+		val, err := readValue(r)
+
+		if err != nil {
+			return nil, err
+		}
+
+		arr.values[i] = val
+	}
+
+	return arr, nil
+}
+
+func handleBlob(r *bufio.Reader, size int) (*respBlob, error) {
+	buf := make([]byte, size)
+	_, err := io.ReadFull(r, buf)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if b, _ := r.ReadByte(); b != '\n' {
+		return nil, fmt.Errorf("%w: unexpected symbol %c, was expected new line", ErrProtocol, rune(b))
+	}
+
+	return &respBlob{val: buf}, nil
+}
+
+func readSize(r *bufio.Reader) (count int, err error) {
 	line, err := nextLine(r)
 
 	if err != nil {
 		return 0, err
 	}
 
-	if !bytes.HasPrefix(line, []byte(prefix)) {
-		msg := fmt.Sprintf("Protocol error: unexpected symbol '%c'", rune(line[0]))
-		return 0, &protocolError{msg: msg}
-	}
-
-	line = bytes.TrimPrefix(line, []byte(prefix))
-
 	var n int
 
 	if n, err = strconv.Atoi(string(line)); err != nil {
-		msg := fmt.Sprintf("Protocol error: %s", err)
-		return 0, &protocolError{msg: msg}
+		return 0, fmt.Errorf("invalid size: %s", string(line))
 	}
 
 	return n, nil
@@ -204,28 +291,13 @@ func (s *session) write(val respValue) error {
 	return nil
 }
 
-func (s *session) writeString(str string) (err error) {
-	return s.write(&respString{val: str})
+func (s *session) writeString(str string) {
+	s.write(&respString{val: str})
 }
 
-func (s *session) writeError(code string, msg string) (err error) {
-	return s.write(&respError{code: code, msg: msg})
-}
-
-func (s *session) writeInt(i int) (err error) {
-	return s.write(&respInteger{val: i})
-}
-
-func (s *session) writeOK() error {
-	return s.writeString("OK")
-}
-
-func (s *session) writeNull() (err error) {
-	return s.write(&respNull{})
-}
-
-func (s *session) writeMap(m map[string]respValue) error {
-	return s.write(&respMap{m: m})
+func newError(code string, format string, v ...interface{}) *respError {
+	msg := fmt.Sprintf(format, v...)
+	return &respError{code: code, msg: msg}
 }
 
 func (b *respBool) writeTo(w io.Writer) error {
@@ -244,8 +316,18 @@ func (s *respString) writeTo(w io.Writer) (err error) {
 	return
 }
 
+func (s *respBlob) writeTo(w io.Writer) (err error) {
+	_, err = fmt.Fprintf(w, "$%d\n%s\n", len(s.val), s.val)
+	return
+}
+
 func (i *respInteger) writeTo(w io.Writer) (err error) {
 	_, err = fmt.Fprintf(w, ":%d\n", i.val)
+	return
+}
+
+func (i *respStreamHeader) writeTo(w io.Writer) (err error) {
+	_, err = fmt.Fprintf(w, ">%d\n", i.id)
 	return
 }
 
@@ -257,6 +339,18 @@ func (e *respError) writeTo(w io.Writer) (err error) {
 func (n *respNull) writeTo(w io.Writer) (err error) {
 	_, err = fmt.Fprint(w, "_\n")
 	return
+}
+
+func (a *respArray) writeTo(w io.Writer) error {
+	buf := new(bytes.Buffer)
+	fmt.Fprintf(buf, "*%d\n", len(a.values))
+
+	for _, v := range a.values {
+		v.writeTo(buf)
+	}
+
+	_, err := buf.WriteTo(w)
+	return err
 }
 
 func (m *respMap) writeTo(w io.Writer) error {
@@ -273,6 +367,38 @@ func (m *respMap) writeTo(w io.Writer) error {
 	return err
 }
 
-func (err *protocolError) Error() string {
-	return err.msg
+func (h *respStreamHeader) name() string {
+	return "stream header"
+}
+
+func (n *respNull) name() string {
+	return "null"
+}
+
+func (a *respArray) name() string {
+	return "array"
+}
+
+func (b *respBool) name() string {
+	return "boolean"
+}
+
+func (s *respString) name() string {
+	return "string"
+}
+
+func (b *respBlob) name() string {
+	return "blob"
+}
+
+func (i *respInteger) name() string {
+	return "integer"
+}
+
+func (e *respError) name() string {
+	return "error"
+}
+
+func (m *respMap) name() string {
+	return "map"
 }

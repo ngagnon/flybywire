@@ -1,10 +1,10 @@
 package main
 
-func handlePing(args []string, s *session) error {
-	return s.writeString("PONG")
+func handlePing(args []respValue, s *session) respValue {
+	return &respString{val: "PONG"}
 }
 
-func handleQuit(args []string, s *session) error {
+func handleQuit(args []respValue, s *session) respValue {
 	s.terminated = true
-	return s.writeOK()
+	return RespOK
 }

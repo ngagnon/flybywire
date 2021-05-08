@@ -6,39 +6,49 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func handleAddUser(args []string, s *session) error {
+func handleAddUser(args []respValue, s *session) respValue {
 	if len(args) != 2 {
-		return s.writeError("ERR", "Command ADDUSER expects exactly 2 arguments")
+		return newError("ARG", "Command ADDUSER expects exactly 2 arguments")
 	}
 
 	if !checkAdmin(s) {
-		return s.writeError("DENIED", "You are not allowed to manage users.")
+		return newError("DENIED", "You are not allowed to manage users")
 	}
 
-	username := args[0]
-	password := []byte(args[1])
+	username, ok := args[0].(*respBlob)
 
-	if len(username) < 1 {
-		return s.writeError("ERR", "Minimum username length is 1")
+	if !ok {
+		return newError("ARG", "Username should be a blob, got %s", args[0].name())
 	}
 
-	if len(username) > 32 {
-		return s.writeError("ERR", "Maximum username length is 32")
+	password, ok := args[1].(*respBlob)
+
+	if !ok {
+		return newError("ARG", "Password should be a blob, got %s", args[1].name())
 	}
 
-	if matched, err := regexp.Match("^[a-z_]([a-z0-9_-]{0,31})$", []byte(username)); !matched || err != nil {
-		return s.writeError("ERR", "Invalid username")
+	if len(username.val) < 1 {
+		return newError("ARG", "Minimum username length is 1")
 	}
 
-	hash, err := bcrypt.GenerateFromPassword(password, 12)
+	if len(username.val) > 32 {
+		return newError("ARG", "Maximum username length is 32")
+	}
+
+	if matched, err := regexp.Match("^[a-z_]([a-z0-9_-]{0,31})$", username.val); !matched || err != nil {
+		return newError("ARG", "Invalid username")
+	}
+
+	hash, err := bcrypt.GenerateFromPassword(password.val, 12)
 
 	if err != nil {
-		return s.writeError("ERR", "Unexpected error while generating hash")
+		log.Errorf("Unexpected error while generating hash: %v", err)
+		return newError("ERR", "Unexpected error while generating hash")
 	}
 
 	updateUsers(func() {
-		users[username] = user{
-			username: username,
+		users[string(username.val)] = user{
+			username: string(username.val),
 			password: hash,
 			chroot:   "",
 			admin:    singleUser,
@@ -46,39 +56,43 @@ func handleAddUser(args []string, s *session) error {
 
 		if singleUser {
 			singleUser = false
-			s.user = username
+			s.user = string(username.val)
 		}
 	})
 
-	return s.writeOK()
+	return RespOK
 }
 
-func handleWhoAmI(args []string, s *session) error {
+func handleWhoAmI(args []respValue, s *session) respValue {
 	if s.user == "" {
-		return s.writeNull()
+		return &respNull{}
 	}
 
-	return s.writeString(s.user)
+	return &respString{val: s.user}
 }
 
-func handleShowUser(args []string, s *session) error {
+func handleShowUser(args []respValue, s *session) respValue {
 	if len(args) != 1 {
-		return s.writeError("ERR", "Command SHOWUSER expects exactly 1 argument")
+		return newError("ARG", "Command SHOWUSER expects exactly 1 argument")
 	}
 
 	if !checkAdmin(s) {
-		return s.writeError("DENIED", "You are not allowed to manage users.")
+		return newError("DENIED", "You are not allowed to manage users.")
 	}
 
-	username := args[0]
+	username, ok := args[0].(*respBlob)
+
+	if !ok {
+		return newError("ARG", "Username should be a blob, got %s", args[0].name())
+	}
 
 	globalLock.RLock()
 	defer globalLock.RUnlock()
 
-	user, ok := users[username]
+	user, ok := users[string(username.val)]
 
 	if !ok {
-		return s.writeError("NOTFOUND", "User not found")
+		return newError("NOTFOUND", "User not found")
 	}
 
 	result := make(map[string]respValue)
@@ -86,7 +100,7 @@ func handleShowUser(args []string, s *session) error {
 	result["chroot"] = &respString{val: user.chroot}
 	result["admin"] = &respBool{val: user.admin}
 
-	return s.writeMap(result)
+	return &respMap{m: result}
 }
 
 func updateUsers(applyChanges func()) {
