@@ -1,9 +1,9 @@
 require 'open3'
 
-RSpec.describe 'config' do
+RSpec.describe 'CLI' do
     it 'will not start with non-existent directory' do
-        stdout, status = Open3.capture2('../fly-server', '-port', '7070', '/blah/blah/blah')
+        stdout, stderr, status = Open3.capture3('../fly-server', '-port', '7070', '/blah/blah/blah')
         expect(status.exitstatus).to eq(1)
-        expect(stdout).to include('ERROR: root directory not found: /blah/blah/blah')
+        expect(stderr).to include('Root directory not found: /blah/blah/blah')
     end
 end

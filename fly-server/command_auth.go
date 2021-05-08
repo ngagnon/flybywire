@@ -1,46 +1,47 @@
 package main
 
 import (
+	"github.com/ngagnon/fly-server/wire"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func handleAuth(args []respValue, s *session) respValue {
+func handleAuth(args []wire.Value, s *session) wire.Value {
 	if len(args) == 0 {
-		return newError("ARG", "Command AUTH expects at least 1 argument")
+		return wire.NewError("ARG", "Command AUTH expects at least 1 argument")
 	}
 
-	authType, ok := args[0].(*respBlob)
+	authType, ok := args[0].(*wire.Blob)
 
 	if !ok {
-		return newError("ARG", "AUTH type should be a blob, got %s", args[0].name())
+		return wire.NewError("ARG", "AUTH type should be a blob, got %s", args[0].Name())
 	}
 
-	if string(authType.val) != "PWD" {
-		return newError("ARG", "Unsupported AUTH type: %s", authType.val)
+	if string(authType.Data) != "PWD" {
+		return wire.NewError("ARG", "Unsupported AUTH type: %s", authType.Data)
 	}
 
 	if len(args) != 3 {
-		return newError("ARG", "Password authentication requires a username and a password")
+		return wire.NewError("ARG", "Password authentication requires a username and a password")
 	}
 
-	username, ok := args[1].(*respBlob)
+	username, ok := args[1].(*wire.Blob)
 
 	if !ok {
-		return newError("ARG", "Username should be a blob, got %s", args[1].name())
+		return wire.NewError("ARG", "Username should be a blob, got %s", args[1].Name())
 	}
 
-	password, ok := args[2].(*respBlob)
+	password, ok := args[2].(*wire.Blob)
 
 	if !ok {
-		return newError("ARG", "Password should be a blob, got %s", args[2].name())
+		return wire.NewError("ARG", "Password should be a blob, got %s", args[2].Name())
 	}
 
-	if !verifyPassword(string(username.val), string(password.val)) {
-		return newError("DENIED", "Authentication failed")
+	if !verifyPassword(string(username.Data), string(password.Data)) {
+		return wire.NewError("DENIED", "Authentication failed")
 	}
 
-	s.user = string(username.val)
-	return RespOK
+	s.user = string(username.Data)
+	return wire.OK
 }
 
 func verifyPassword(username string, password string) bool {

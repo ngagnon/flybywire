@@ -112,6 +112,11 @@ class RESP < RESPIO
 
     def get_next()
         line = @s.gets("\n")
+
+        if line == nil
+            raise 'unexpected end of file'
+        end
+
         line.delete_suffix!("\n")
 
         if line.start_with? '+'

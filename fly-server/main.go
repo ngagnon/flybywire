@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -8,9 +9,11 @@ import (
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/ngagnon/fly-server/wire"
 )
 
-type commandHandler func(args []respValue, session *session) (response respValue)
+type commandHandler func(args []wire.Value, session *session) (response wire.Value)
 
 var commandHandlers = map[string]commandHandler{
 	"PING":     handlePing,
@@ -72,6 +75,7 @@ func main() {
 func handleSession(conn net.Conn) {
 	session := newSession(conn)
 	writeErr := make(chan error)
+	writerDone := false
 	defer conn.Close()
 
 	go handleWrites(conn, session.out, writeErr)
@@ -80,56 +84,60 @@ func handleSession(conn net.Conn) {
 
 	for !session.terminated {
 		if err = checkWriteError(writeErr); err != nil {
+			writerDone = true
 			break
 		}
 
-		f, err := session.nextFrame()
+		frame, err := wire.ReadFrame(session.reader)
+
+		if errors.Is(err, wire.ErrFormat) {
+			session.out <- wire.NewError("PROTO", err.Error())
+			continue
+		}
 
 		if err != nil {
 			break
 		}
 
-		if f.streamId == nil {
-			arr := f.val.(*respArray)
-			cmdName := string(arr.values[0].(*respBlob).val)
+		if frame.StreamId == nil {
+			arr := frame.Payload.(*wire.Array)
+			cmdName := string(arr.Values[0].(*wire.Blob).Data)
 			handler, ok := getCommandHandler(cmdName)
 
 			if ok {
 				/* @TODO: handle commands in a separate worker goroutine */
-				args := arr.values[1:]
+				args := arr.Values[1:]
 				response := handler(args, session)
 				session.out <- response
 			} else {
-				session.out <- newError("CMD", "Unknown command '%s'", cmdName)
+				session.out <- wire.NewError("CMD", "Unknown command '%s'", cmdName)
 			}
 		} else {
-			stream, ok := session.getStream(*f.streamId)
+			stream, ok := session.getStream(*frame.StreamId)
 
 			if !ok {
-				session.out <- newError("PROTO", "Invalid stream ID %d", *f.streamId)
+				session.out <- wire.NewError("PROTO", "Invalid stream ID %d", *frame.StreamId)
 				continue
 			}
 
-			if blob, isBlob := f.val.(*respBlob); isBlob {
-				stream.data <- blob.val
-			} else if _, isNull := f.val.(*respNull); isNull {
+			if blob, isBlob := frame.Payload.(*wire.Blob); isBlob {
+				stream.data <- blob.Data
+			} else if frame.Payload == wire.Null {
 				stream.finish <- struct{}{}
 			} else {
-				session.out <- newError("PROTO", "Expected blob or null after stream header, got %s", f.val.name())
+				session.out <- wire.NewError("PROTO", "Expected blob or null after stream header, got %s", frame.Payload.Name())
 			}
-		}
-
-		if err != nil {
-			break
 		}
 	}
 
 	/* @TODO: force close all streams (cancel) */
-	/* @TODO: drain the out channel */
-	/* @TODO: abort the write goroutine */
 
-	if err != nil {
-		log.Debugf("Session aborted -- err=\"%v\"", err)
+	if !writerDone {
+		// Put an "end-of-file" marker in write queue
+		session.out <- nil
+
+		// Wait for the writer to drain the write queue (or fail on error)
+		<-writeErr
 	}
 }
 
@@ -143,10 +151,17 @@ func checkWriteError(writeErr chan error) (err error) {
 	return
 }
 
-func handleWrites(writer io.Writer, out chan respValue, errChan chan error) {
+/* @TODO: move to its own struct/file */
+func handleWrites(writer io.Writer, out chan wire.Value, errChan chan error) {
 	for {
 		val := <-out
-		err := val.writeTo(writer)
+
+		if val == nil {
+			errChan <- nil
+			return
+		}
+
+		err := val.WriteTo(writer)
 
 		if err != nil {
 			errChan <- err

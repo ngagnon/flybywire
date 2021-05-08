@@ -4,60 +4,62 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/ngagnon/fly-server/wire"
 )
 
-func handleMkdir(args []respValue, s *session) respValue {
+func handleMkdir(args []wire.Value, s *session) wire.Value {
 	if len(args) != 1 {
-		return newError("ARG", "Command MKDIR expects exactly one argument")
+		return wire.NewError("ARG", "Command MKDIR expects exactly one argument")
 	}
 
-	pathBlob, ok := args[0].(*respBlob)
+	pathBlob, ok := args[0].(*wire.Blob)
 
 	if !ok {
-		return newError("ARG", "Path should be a blob, got %s", args[0].name())
+		return wire.NewError("ARG", "Path should be a blob, got %s", args[0].Name())
 	}
 
-	vPath := "/" + strings.Trim(string(pathBlob.val), "/")
+	vPath := "/" + strings.Trim(string(pathBlob.Data), "/")
 
 	if !checkAuth(s, vPath, true) {
-		return newError("DENIED", "Access denied")
+		return wire.NewError("DENIED", "Access denied")
 	}
 
 	realPath := resolveVirtualPath(vPath)
 
 	if err := os.MkdirAll(realPath, 0755); err != nil {
 		// @TODO: debug log
-		return newError("ERR", "Unexpected error occurred")
+		return wire.NewError("ERR", "Unexpected error occurred")
 	}
 
-	return RespOK
+	return wire.OK
 }
 
-func handleStream(args []respValue, s *session) respValue {
+func handleStream(args []wire.Value, s *session) wire.Value {
 	if len(args) != 2 {
-		return newError("ARG", "Command STREAM expects exactly 2 arguments")
+		return wire.NewError("ARG", "Command STREAM expects exactly 2 arguments")
 	}
 
-	mode, ok := args[0].(*respBlob)
+	mode, ok := args[0].(*wire.Blob)
 
 	if !ok {
-		return newError("ARG", "Mode should be a blob, got %s", args[0].name())
+		return wire.NewError("ARG", "Mode should be a blob, got %s", args[0].Name())
 	}
 
-	pathBlob, ok := args[1].(*respBlob)
+	pathBlob, ok := args[1].(*wire.Blob)
 
 	if !ok {
-		return newError("ARG", "Path should be a blob, got %s", args[1].name())
+		return wire.NewError("ARG", "Path should be a blob, got %s", args[1].Name())
 	}
 
-	vPath := "/" + strings.TrimPrefix(string(pathBlob.val), "/")
+	vPath := "/" + strings.TrimPrefix(string(pathBlob.Data), "/")
 
-	if string(mode.val) != "W" {
-		return newError("ARG", "Unsupported mode: %s", mode.val)
+	if string(mode.Data) != "W" {
+		return wire.NewError("ARG", "Unsupported mode: %s", mode.Data)
 	}
 
 	if !checkAuth(s, vPath, true) {
-		return newError("DENIED", "Access denied")
+		return wire.NewError("DENIED", "Access denied")
 	}
 
 	/* @TODO: check that the folder exists */
@@ -66,7 +68,7 @@ func handleStream(args []respValue, s *session) respValue {
 
 	if err != nil {
 		// @TODO: debug log
-		return newError("ERR", "Unexpected error occurred")
+		return wire.NewError("ERR", "Unexpected error occurred")
 	}
 
 	realPath := resolveVirtualPath(vPath)
@@ -83,12 +85,12 @@ func handleStream(args []respValue, s *session) respValue {
 
 	if !ok {
 		f.Close()
-		return newError("TOOMANY", "Too many streams open")
+		return wire.NewError("TOOMANY", "Too many streams open")
 	}
 
 	go handleWriteStream(id, stream, s)
 
-	return &respInteger{val: id}
+	return wire.NewInteger(id)
 }
 
 func handleWriteStream(id int, s *stream, session *session) {
@@ -119,7 +121,7 @@ func handleWriteStream(id int, s *stream, session *session) {
 			}
 		case <-timeout.C:
 			cancelWriteStream(s)
-			session.out <- &respError{code: "TIMEOUT", msg: "Timed out due to inactivity"}
+			session.out <- wire.NewError("TIMEOUT", "Timed out due to inactivity")
 			return
 		case <-s.cancel:
 			cancelWriteStream(s)
@@ -128,7 +130,7 @@ func handleWriteStream(id int, s *stream, session *session) {
 			err := finishWriteStream(s)
 
 			if err != nil {
-				session.out <- &respError{code: "IO", msg: "Could not write file to disk."}
+				session.out <- wire.NewError("IO", "Could not write file to disk.")
 				log.Debugf("Could not write file to disk -- err=\"%v\"", err)
 			}
 
@@ -141,7 +143,7 @@ func handleChunk(chunk []byte, s *stream, session *session, timeout *time.Timer,
 	_, err := s.file.Write(chunk)
 
 	if err != nil {
-		session.out <- &respError{code: "IO", msg: "Could not write chunk to disk. Closing stream."}
+		session.out <- wire.NewError("IO", "Could not write chunk to disk. Closing stream.")
 		log.Debugf("Could not write file to disk -- err=\"%v\"", err)
 		cancelWriteStream(s)
 		return false

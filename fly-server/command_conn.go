@@ -1,10 +1,12 @@
 package main
 
-func handlePing(args []respValue, s *session) respValue {
-	return &respString{val: "PONG"}
+import "github.com/ngagnon/fly-server/wire"
+
+func handlePing(args []wire.Value, s *session) wire.Value {
+	return wire.NewString("PONG")
 }
 
-func handleQuit(args []respValue, s *session) respValue {
+func handleQuit(args []wire.Value, s *session) wire.Value {
 	s.terminated = true
-	return RespOK
+	return wire.OK
 }
