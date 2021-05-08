@@ -6,21 +6,22 @@ import (
 	"io"
 	"net"
 	"os"
-	"runtime/debug"
 	"strings"
 	"sync"
 )
 
+/* @TODO: command handler should return respValue, error */
 type commandHandler func([]string, *session) error
 
 var commandHandlers = map[string]commandHandler{
 	"PING":     handlePing,
 	"QUIT":     handleQuit,
+	"WHOAMI":   handleWhoAmI,
+	"AUTH":     handleAuth,
 	"MKDIR":    handleMkdir,
 	"ADDUSER":  handleAddUser,
-	"WHOAMI":   handleWhoAmI,
 	"SHOWUSER": handleShowUser,
-	"AUTH":     handleAuth,
+	"STREAM":   handleStream,
 }
 
 var dir string
@@ -31,28 +32,27 @@ var globalLock sync.RWMutex
 
 func main() {
 	port := flag.Int("port", 6767, "TCP port to listen on")
+	debug := flag.Bool("debug", false, "Turn on debug logs")
 	flag.Parse()
+
+	log.Init(*debug, os.Stderr)
 
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
 
 	if err != nil {
-		fmt.Println("Cannot start TCP server:", err)
-		os.Exit(1)
+		log.Fatalf("Cannot start TCP server: %v", err)
 	}
 
 	defer ln.Close()
 
 	if flag.NArg() == 0 {
-		fmt.Println("USAGE: fly-server ROOTDIR")
-		fmt.Println()
-		os.Exit(1)
+		log.Fatalf("Usage: fly-server ROOTDIR", err)
 	}
 
 	dir = flag.Arg(0)
 
 	if stat, err := os.Stat(dir); os.IsNotExist(err) || !stat.IsDir() {
-		fmt.Println("ERROR: root directory not found:", dir)
-		os.Exit(1)
+		log.Fatalf("Root directory not found: %s", dir)
 	}
 
 	readDatabase()
@@ -61,8 +61,7 @@ func main() {
 		conn, err := ln.Accept()
 
 		if err != nil {
-			fmt.Println("Accept error")
-			os.Exit(1)
+			log.Fatalf("Accept error: %v", err)
 		}
 
 		go handleSession(conn)
@@ -73,16 +72,22 @@ func handleSession(conn net.Conn) {
 	session := newSession(conn)
 	defer conn.Close()
 
-	defer func() {
-		if err := recover(); err != nil && err != io.EOF {
-			fmt.Println("ERROR: session aborted:", err)
-			fmt.Println(string(debug.Stack()))
-		}
-	}()
+	go handleWrites(conn, session.out, session.writeErr)
 
 	var err error
 
 	for !session.terminated {
+		if err = checkWriteError(session); err != nil {
+			break
+		}
+
+		// @TODO: nextCommand -> nextFrame
+		/*
+			type frame interface {
+				streamId *int // nil when not a stream chunk
+				val respValue
+			}
+		*/
 		cmd, err := session.nextCommand()
 		err = handleProtoError(err, session)
 
@@ -93,6 +98,7 @@ func handleSession(conn net.Conn) {
 		handler, ok := getCommandHandler(cmd.name)
 
 		if ok {
+			/* @TODO: handle commands in a separate worker goroutine */
 			err = handler(cmd.args, session)
 		} else {
 			msg := fmt.Sprintf("Unknown command '%s'", cmd.name)
@@ -104,8 +110,33 @@ func handleSession(conn net.Conn) {
 		}
 	}
 
+	/* @TODO: force close all streams (cancel) */
+	/* @TODO: drain the out channel */
+
 	if err != nil {
-		fmt.Println("ERROR: session aborted:", err)
+		log.Debugf("Session aborted -- err=\"%v\"", err)
+	}
+}
+
+func checkWriteError(session *session) (err error) {
+	select {
+	case err = <-session.writeErr:
+	default:
+		err = nil
+	}
+
+	return
+}
+
+func handleWrites(writer io.Writer, out chan respValue, errChan chan error) {
+	for {
+		val := <-out
+		err := val.writeTo(writer)
+
+		if err != nil {
+			errChan <- err
+			return
+		}
 	}
 }
 

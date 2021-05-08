@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/csv"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"path"
@@ -46,8 +45,7 @@ func readDatabase() {
 		dbFolder := path.Join(dir, ".fly")
 
 		if err := os.MkdirAll(dbFolder, 0700); err != nil {
-			fmt.Println("ERROR: could not create FlyDB folder:", err)
-			os.Exit(1)
+			log.Fatalf("Could not create FlyDB folder: %v", err)
 		}
 
 		writeVersionFile()
@@ -68,16 +66,14 @@ func readVersionFile() (found bool) {
 	}
 
 	if err != nil {
-		fmt.Println("ERROR: could not open version file:", err)
-		os.Exit(1)
+		log.Fatalf("Could not open version file: %v", err)
 	}
 
 	found = true
 	version = bytes.TrimSpace(version)
 
 	if string(version) != "1" {
-		fmt.Println("Unexpected FlyDB version:", version)
-		os.Exit(1)
+		log.Fatalf("Unexpected FlyDB version: %d", version)
 	}
 
 	return
@@ -87,8 +83,7 @@ func writeVersionFile() {
 	versionPath := path.Join(dir, ".fly/version")
 
 	if err := os.WriteFile(versionPath, []byte("1\n"), 0600); err != nil {
-		fmt.Println("ERROR: could not create new FlyDB file:", err)
-		os.Exit(1)
+		log.Fatalf("Could not create new FlyDB file: %v", err)
 	}
 }
 
@@ -143,16 +138,14 @@ func writeUserDb() {
 	f, err := os.OpenFile(tmpPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 
 	if err != nil {
-		fmt.Println("ERROR: couldn't open FlyDB for writing:", err)
-		os.Exit(1)
+		log.Fatalf("Could not open FlyDB for writing: %v", err)
 	}
 
 	defer f.Close()
 	csv := csv.NewWriter(f)
 
 	if err := csv.Write([]string{"username", "password", "chroot", "admin"}); err != nil {
-		fmt.Println("ERROR: couldn't write to FlyDB:", err)
-		os.Exit(1)
+		log.Fatalf("could not write to FlyDB: %v", err)
 	}
 
 	records := make([][]string, len(users))
@@ -176,15 +169,13 @@ func writeUserDb() {
 	}
 
 	if err = csv.WriteAll(records); err != nil {
-		fmt.Println("ERROR: couldn't write to FlyDB:", err)
-		os.Exit(1)
+		log.Fatalf("Could not write to FlyDB: %v", err)
 	}
 
 	finalPath := strings.TrimRight(tmpPath, "~")
 
 	if err = os.Rename(tmpPath, finalPath); err != nil {
-		fmt.Println("ERROR: couldn't write to FlyDB:", err)
-		os.Exit(1)
+		log.Fatalf("Couldn't write to FlyDB: %v", err)
 	}
 }
 
@@ -243,16 +234,14 @@ func writeAccessDb() {
 	f, err := os.OpenFile(tmpPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 
 	if err != nil {
-		fmt.Println("ERROR: couldn't open FlyDB for writing:", err)
-		os.Exit(1)
+		log.Fatalf("Could not open FlyDB for writing: %v", err)
 	}
 
 	defer f.Close()
 	csv := csv.NewWriter(f)
 
 	if err := csv.Write([]string{"rule", "users", "paths", "allow"}); err != nil {
-		fmt.Println("ERROR: couldn't write to FlyDB:", err)
-		os.Exit(1)
+		log.Fatalf("Could not write to FlyDB: %v", err)
 	}
 
 	records := make([][]string, len(policies))
@@ -276,15 +265,13 @@ func writeAccessDb() {
 	}
 
 	if err = csv.WriteAll(records); err != nil {
-		fmt.Println("ERROR: couldn't write to FlyDB:", err)
-		os.Exit(1)
+		log.Fatalf("Could not write to FlyDB: %v", err)
 	}
 
 	finalPath := strings.TrimRight(tmpPath, "~")
 
 	if err = os.Rename(tmpPath, finalPath); err != nil {
-		fmt.Println("ERROR: couldn't write to FlyDB:", err)
-		os.Exit(1)
+		log.Fatalf("Could not write to FlyDB: %v", err)
 	}
 }
 
@@ -297,6 +284,5 @@ func parseAcpUsers(s string) []string {
 }
 
 func abortDbCorrupt(fileName string, err error) {
-	fmt.Printf("ERROR: FlyDB is corrupted: %s: %s\n", fileName, err)
-	os.Exit(1)
+	log.Fatalf("FlyDB is corrupted: %s: %v", fileName, err)
 }

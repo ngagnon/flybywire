@@ -1,5 +1,7 @@
 require 'socket'
 require 'benchmark'
+require 'fileutils'
+require 'tmpdir'
 
 RSpec.configure do |config|
     config.before(:suite) do
@@ -58,6 +60,19 @@ class RESPIO
             @s.puts "#{s}\n"
         end
     end
+
+    def put_stream(id)
+        @s.puts ">#{id}\n"
+    end
+
+    def put_null()
+        @s.puts "_\n"
+    end
+
+    def pub_blob(blob)
+        @s.puts "$#{blob.length}\n"
+        @s.puts "#{blob}\n"
+    end
 end
 
 class BufferedRESP < RESPIO 
@@ -105,6 +120,9 @@ class RESP < RESPIO
         elsif line.start_with? '-'
             line.delete_prefix!("-")
             return [:error, line]
+        elsif line.start_with? ':'
+            line.delete_prefix!(':')
+            return [:int, line.to_i]
         elsif line.start_with? '$'
             line.delete_prefix!("$")
             len = line.to_i
@@ -131,6 +149,16 @@ class RESP < RESPIO
         else
             raise 'get_next: illegal data type: ' + line[0]
         end
+    end
+
+    def get_int()
+        (type, val) = get_next()
+
+        if type != :int
+            raise 'get_int: did not get an integer'
+        end
+
+        val
     end
 
     def get_string()

@@ -6,14 +6,27 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"strconv"
+	"sync"
 )
 
 type session struct {
 	terminated bool
 	user       string
+	writeErr   chan error
 	reader     *bufio.Reader
-	writer     io.Writer
+	out        chan respValue
+	streams    [16]*stream
+	streamLock sync.RWMutex
+}
+
+type stream struct {
+	finish    chan struct{}
+	cancel    chan struct{}
+	data      chan []byte
+	finalPath string
+	file      *os.File
 }
 
 type command struct {
@@ -39,12 +52,26 @@ type respString struct {
 	val string
 }
 
+type respInteger struct {
+	val int
+}
+
+type respError struct {
+	code string
+	msg  string
+}
+
+type respMap struct {
+	m map[string]respValue
+}
+
 func newSession(conn net.Conn) *session {
 	return &session{
 		terminated: false,
 		user:       "",
 		reader:     bufio.NewReader(conn),
-		writer:     conn,
+		out:        make(chan respValue, 10),
+		writeErr:   make(chan error),
 	}
 }
 
@@ -140,16 +167,41 @@ func readLine(r *bufio.Reader) ([]byte, error) {
 	return line, nil
 }
 
+func (s *session) addStream(stream *stream) (id int, ok bool) {
+	s.streamLock.Lock()
+	defer s.streamLock.Unlock()
+
+	id, ok = nextStreamId(s.streams[:])
+
+	if ok {
+		s.streams[id] = stream
+	}
+
+	return
+}
+func (s *session) closeStream(id int) {
+	s.streamLock.Lock()
+	s.streams[id] = nil
+	s.streamLock.Unlock()
+}
+
+func nextStreamId(streams []*stream) (id int, ok bool) {
+	for i := 0; i < len(streams); i++ {
+		if streams[i] == nil {
+			return i, true
+		}
+	}
+
+	return 0, false
+}
+
 func (s *session) Read(p []byte) (int, error) {
 	return s.reader.Read(p)
 }
 
-func (s *session) Write(p []byte) (int, error) {
-	return s.writer.Write(p)
-}
-
 func (s *session) write(val respValue) error {
-	return val.writeTo(s)
+	s.out <- val
+	return nil
 }
 
 func (s *session) writeString(str string) (err error) {
@@ -157,8 +209,11 @@ func (s *session) writeString(str string) (err error) {
 }
 
 func (s *session) writeError(code string, msg string) (err error) {
-	_, err = fmt.Fprintf(s, "-%s %s\n", code, msg)
-	return
+	return s.write(&respError{code: code, msg: msg})
+}
+
+func (s *session) writeInt(i int) (err error) {
+	return s.write(&respInteger{val: i})
 }
 
 func (s *session) writeOK() error {
@@ -170,20 +225,7 @@ func (s *session) writeNull() (err error) {
 }
 
 func (s *session) writeMap(m map[string]respValue) error {
-	buf := new(bytes.Buffer)
-	fmt.Fprintf(buf, "%%%d\n", len(m))
-
-	prevWriter := s.writer
-	s.writer = buf
-
-	for k, v := range m {
-		s.writeString(k)
-		v.writeTo(buf)
-	}
-
-	s.writer = prevWriter
-	_, err := buf.WriteTo(prevWriter)
-	return err
+	return s.write(&respMap{m: m})
 }
 
 func (b *respBool) writeTo(w io.Writer) error {
@@ -202,9 +244,33 @@ func (s *respString) writeTo(w io.Writer) (err error) {
 	return
 }
 
+func (i *respInteger) writeTo(w io.Writer) (err error) {
+	_, err = fmt.Fprintf(w, ":%d\n", i.val)
+	return
+}
+
+func (e *respError) writeTo(w io.Writer) (err error) {
+	_, err = fmt.Fprintf(w, "-%s %s\n", e.code, e.msg)
+	return
+}
+
 func (n *respNull) writeTo(w io.Writer) (err error) {
 	_, err = fmt.Fprint(w, "_\n")
 	return
+}
+
+func (m *respMap) writeTo(w io.Writer) error {
+	buf := new(bytes.Buffer)
+	fmt.Fprintf(buf, "%%%d\n", len(m.m))
+
+	for k, v := range m.m {
+		ks := respString{val: k}
+		ks.writeTo(buf)
+		v.writeTo(buf)
+	}
+
+	_, err := buf.WriteTo(w)
+	return err
 }
 
 func (err *protocolError) Error() string {

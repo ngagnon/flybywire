@@ -1,5 +1,12 @@
+- Wrap errors
 - Continue working on more commands (file, ACLs)
-- File streaming (prioritize command requests & responses!)
+    - STREAM
+    - CLOSE
+    - DEL
+    - LIST
+    - MOVE
+    - TOUCH
+- ACLs
 - To get the server out of single-user mode, we should use AUTH instead of ADDUSER, would make things less confusing
 - Verify integrity of the databases when reading from them
 - Each command should have a unit test to make sure it calls checkAuth, and to make sure it returns -DENIED when checkAuth returned false (use bytes.Buffer?)
