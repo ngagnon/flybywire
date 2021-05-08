@@ -71,14 +71,15 @@ func main() {
 
 func handleSession(conn net.Conn) {
 	session := newSession(conn)
+	writeErr := make(chan error)
 	defer conn.Close()
 
-	go handleWrites(conn, session.out, session.writeErr)
+	go handleWrites(conn, session.out, writeErr)
 
 	var err error
 
 	for !session.terminated {
-		if err = checkWriteError(session); err != nil {
+		if err = checkWriteError(writeErr); err != nil {
 			break
 		}
 
@@ -102,7 +103,20 @@ func handleSession(conn net.Conn) {
 				session.out <- newError("CMD", "Unknown command '%s'", cmdName)
 			}
 		} else {
-			/* @TODO: handle stream chunk */
+			stream, ok := session.getStream(*f.streamId)
+
+			if !ok {
+				session.out <- newError("PROTO", "Invalid stream ID %d", *f.streamId)
+				continue
+			}
+
+			if blob, isBlob := f.val.(*respBlob); isBlob {
+				stream.data <- blob.val
+			} else if _, isNull := f.val.(*respNull); isNull {
+				stream.finish <- struct{}{}
+			} else {
+				session.out <- newError("PROTO", "Expected blob or null after stream header, got %s", f.val.name())
+			}
 		}
 
 		if err != nil {
@@ -119,9 +133,9 @@ func handleSession(conn net.Conn) {
 	}
 }
 
-func checkWriteError(session *session) (err error) {
+func checkWriteError(writeErr chan error) (err error) {
 	select {
-	case err = <-session.writeErr:
+	case err = <-writeErr:
 	default:
 		err = nil
 	}

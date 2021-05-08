@@ -44,10 +44,10 @@ func handleStream(args []respValue, s *session) respValue {
 		return newError("ARG", "Mode should be a blob, got %s", args[0].name())
 	}
 
-	pathBlob, ok := args[0].(*respBlob)
+	pathBlob, ok := args[1].(*respBlob)
 
 	if !ok {
-		return newError("ARG", "Path should be a blob, got %s", args[0].name())
+		return newError("ARG", "Path should be a blob, got %s", args[1].name())
 	}
 
 	vPath := "/" + strings.TrimPrefix(string(pathBlob.val), "/")
@@ -99,6 +99,24 @@ func handleWriteStream(id int, s *stream, session *session) {
 
 	for {
 		select {
+		case chunk := <-s.data:
+			ok := handleChunk(chunk, s, session, timeout, maxInactivity)
+
+			if !ok {
+				return
+			}
+
+			continue
+		default:
+		}
+
+		select {
+		case chunk := <-s.data:
+			ok := handleChunk(chunk, s, session, timeout, maxInactivity)
+
+			if !ok {
+				return
+			}
 		case <-timeout.C:
 			cancelWriteStream(s)
 			session.out <- &respError{code: "TIMEOUT", msg: "Timed out due to inactivity"}
@@ -115,23 +133,28 @@ func handleWriteStream(id int, s *stream, session *session) {
 			}
 
 			return
-		case chunk := <-s.data:
-			_, err := s.file.Write(chunk)
-
-			if err != nil {
-				session.out <- &respError{code: "IO", msg: "Could not write chunk to disk. Closing stream."}
-				log.Debugf("Could not write file to disk -- err=\"%v\"", err)
-				cancelWriteStream(s)
-				return
-			} else {
-				if !timeout.Stop() {
-					<-timeout.C
-				}
-
-				timeout.Reset(maxInactivity)
-			}
 		}
 	}
+}
+
+func handleChunk(chunk []byte, s *stream, session *session, timeout *time.Timer, maxInactivity time.Duration) (ok bool) {
+	_, err := s.file.Write(chunk)
+
+	if err != nil {
+		session.out <- &respError{code: "IO", msg: "Could not write chunk to disk. Closing stream."}
+		log.Debugf("Could not write file to disk -- err=\"%v\"", err)
+		cancelWriteStream(s)
+		return false
+	}
+
+	// @TODO: refactor into a watchdog timer
+	if !timeout.Stop() {
+		<-timeout.C
+	}
+
+	timeout.Reset(maxInactivity)
+
+	return true
 }
 
 func cancelWriteStream(s *stream) {

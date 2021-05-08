@@ -16,20 +16,21 @@ RSpec.describe 'STREAM' do
 
             it 'writes to file' do
                 $admin.put_stream(@id)
-                $admin.pub_blob('hello1\n')
+                $admin.pub_blob("hello1\n")
 
                 $admin.put_stream(@id)
-                $admin.pub_blob('hello2\n')
+                $admin.pub_blob("hello2\n")
 
                 $admin.put_stream(@id)
-                $admin.pub_blob('hello3\n')
+                $admin.pub_blob("hello3\n")
 
                 $admin.put_stream(@id)
                 $admin.put_null
+                sleep 0.100
 
                 filepath = File.join($dir, 'test.txt')
                 content = File.read(filepath)
-                expect(content).to be "hello1\nhello2\nhello3\n"
+                expect(content).to eq "hello1\nhello2\nhello3\n"
             end
         end
     end

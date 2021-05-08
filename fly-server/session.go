@@ -15,7 +15,6 @@ import (
 type session struct {
 	terminated bool
 	user       string
-	writeErr   chan error
 	reader     *bufio.Reader
 	out        chan respValue
 	streams    [16]*stream
@@ -84,7 +83,6 @@ func newSession(conn net.Conn) *session {
 		user:       "",
 		reader:     bufio.NewReader(conn),
 		out:        make(chan respValue, 10),
-		writeErr:   make(chan error),
 	}
 }
 
@@ -115,7 +113,10 @@ func (s *session) nextFrame() (frame, error) {
 				return frame{}, err
 			}
 
-			if _, isBlob := payload.(*respBlob); !isBlob {
+			_, isBlob := payload.(*respBlob)
+			_, isNull := payload.(*respNull)
+
+			if !isBlob && !isNull {
 				msg := fmt.Sprintf("Protocol error: invalid stream frame, unexpected %s", payload.name())
 				s.out <- newError("PROTO", msg)
 				continue
@@ -156,7 +157,22 @@ func readValue(r *bufio.Reader) (respValue, error) {
 		return nil, err
 	}
 
+	if b == '_' {
+		b, err := r.ReadByte()
+
+		if err != nil {
+			return nil, err
+		}
+
+		if b != '\n' {
+			return nil, fmt.Errorf("%w: unexpected symbol %c, was expecting new line", ErrProtocol, rune(b))
+		}
+
+		return &respNull{}, nil
+	}
+
 	if b == '>' || b == '*' || b == '$' {
+		// @TODO: readSize might return an IO error, which we wouldn't want to bubble up as a protocol error
 		size, err := readSize(r)
 
 		if err != nil {
@@ -254,6 +270,19 @@ func readLine(r *bufio.Reader) ([]byte, error) {
 	return line, nil
 }
 
+func (s *session) getStream(id int) (stream *stream, ok bool) {
+	s.streamLock.RLock()
+	defer s.streamLock.RUnlock()
+
+	if id < 0 || id >= len(s.streams) {
+		return nil, false
+	}
+
+	stream = s.streams[id]
+	ok = stream != nil
+	return
+}
+
 func (s *session) addStream(stream *stream) (id int, ok bool) {
 	s.streamLock.Lock()
 	defer s.streamLock.Unlock()
@@ -266,6 +295,7 @@ func (s *session) addStream(stream *stream) (id int, ok bool) {
 
 	return
 }
+
 func (s *session) closeStream(id int) {
 	s.streamLock.Lock()
 	s.streams[id] = nil
