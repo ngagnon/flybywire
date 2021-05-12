@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"net"
 	"os"
 	"sync"
@@ -26,8 +25,6 @@ type stream struct {
 	finalPath string
 	file      *os.File
 }
-
-var ErrProtocol = errors.New("Protocol error")
 
 func newSession(conn net.Conn) *session {
 	return &session{

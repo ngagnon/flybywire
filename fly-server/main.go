@@ -8,8 +8,8 @@ import (
 	"net"
 	"os"
 	"strings"
-	"sync"
 
+	"github.com/ngagnon/fly-server/db"
 	"github.com/ngagnon/fly-server/wire"
 )
 
@@ -27,10 +27,7 @@ var commandHandlers = map[string]commandHandler{
 }
 
 var dir string
-var singleUser bool
-var users map[string]user
-var policies []acp
-var globalLock sync.RWMutex
+var flydb *db.Handle
 
 func main() {
 	port := flag.Int("port", 6767, "TCP port to listen on")
@@ -57,7 +54,9 @@ func main() {
 		log.Fatalf("Root directory not found: %s", dir)
 	}
 
-	readDatabase()
+	if flydb, err = db.Open(dir); err != nil {
+		log.Fatalf("%v", err)
+	}
 
 	log.Infof("Server started. Listening on port %d", *port)
 

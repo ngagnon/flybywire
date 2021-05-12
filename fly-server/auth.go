@@ -1,10 +1,10 @@
 package main
 
 func checkAuth(s *session, path string, write bool) bool {
-	globalLock.RLock()
-	defer globalLock.RUnlock()
+	tx := flydb.RTxn()
+	defer tx.Complete()
 
-	if singleUser {
+	if tx.NumUsers() == 0 {
 		return true
 	}
 
@@ -13,12 +13,14 @@ func checkAuth(s *session, path string, write bool) bool {
 	}
 
 	// User doesn't exist anymore
-	if _, ok := users[s.user]; !ok {
+	user, ok := tx.FindUser(s.user)
+
+	if !ok {
 		s.user = ""
 		return false
 	}
 
-	if users[s.user].admin {
+	if user.Admin {
 		return true
 	}
 
@@ -28,10 +30,10 @@ func checkAuth(s *session, path string, write bool) bool {
 }
 
 func checkAdmin(s *session) bool {
-	globalLock.RLock()
-	defer globalLock.RUnlock()
+	tx := flydb.RTxn()
+	defer tx.Complete()
 
-	if singleUser {
+	if tx.NumUsers() == 0 {
 		return true
 	}
 
@@ -40,10 +42,12 @@ func checkAdmin(s *session) bool {
 	}
 
 	// User doesn't exist anymore
-	if _, ok := users[s.user]; !ok {
+	user, ok := tx.FindUser(s.user)
+
+	if !ok {
 		s.user = ""
 		return false
 	}
 
-	return users[s.user].admin
+	return user.Admin
 }

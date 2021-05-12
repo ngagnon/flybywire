@@ -45,16 +45,15 @@ func handleAuth(args []wire.Value, s *session) wire.Value {
 }
 
 func verifyPassword(username string, password string) bool {
-	globalLock.RLock()
-	defer globalLock.RUnlock()
-
-	user, ok := users[username]
+	tx := flydb.RTxn()
+	user, ok := tx.FindUser(username)
+	tx.Complete()
 
 	if !ok {
 		return false
 	}
 
-	err := bcrypt.CompareHashAndPassword([]byte(user.password), []byte(password))
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 
 	return err == nil
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"regexp"
 
+	"github.com/ngagnon/fly-server/db"
 	"github.com/ngagnon/fly-server/wire"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -47,19 +48,25 @@ func handleAddUser(args []wire.Value, s *session) wire.Value {
 		return wire.NewError("ERR", "Unexpected error while generating hash")
 	}
 
-	updateUsers(func() {
-		users[string(username.Data)] = user{
-			username: string(username.Data),
-			password: hash,
-			chroot:   "",
-			admin:    singleUser,
-		}
+	tx := flydb.Txn()
+	defer tx.Complete()
 
-		if singleUser {
-			singleUser = false
-			s.user = string(username.Data)
-		}
-	})
+	singleUser := tx.NumUsers() == 0
+
+	newUser := &db.User{
+		Username: string(username.Data),
+		Password: hash,
+		Chroot:   "",
+		Admin:    singleUser,
+	}
+
+	if singleUser {
+		s.user = newUser.Username
+	}
+
+	if err = tx.AddUser(newUser); err != nil {
+		log.Fatalf("%v", err)
+	}
 
 	return wire.OK
 }
@@ -87,27 +94,18 @@ func handleShowUser(args []wire.Value, s *session) wire.Value {
 		return wire.NewError("ARG", "Username should be a blob, got %s", args[0].Name())
 	}
 
-	globalLock.RLock()
-	defer globalLock.RUnlock()
-
-	user, ok := users[string(username.Data)]
+	tx := flydb.RTxn()
+	user, ok := tx.FindUser(string(username.Data))
+	tx.Complete()
 
 	if !ok {
 		return wire.NewError("NOTFOUND", "User not found")
 	}
 
 	result := make(map[string]wire.Value)
-	result["username"] = wire.NewString(user.username)
-	result["chroot"] = wire.NewString(user.chroot)
-	result["admin"] = wire.NewBoolean(user.admin)
+	result["username"] = wire.NewString(user.Username)
+	result["chroot"] = wire.NewString(user.Chroot)
+	result["admin"] = wire.NewBoolean(user.Admin)
 
 	return wire.NewMap(result)
-}
-
-func updateUsers(applyChanges func()) {
-	globalLock.Lock()
-	defer globalLock.Unlock()
-
-	applyChanges()
-	writeUserDb()
 }
