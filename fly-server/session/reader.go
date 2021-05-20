@@ -43,7 +43,9 @@ func handleReads(conn io.Reader, s *S) {
 			stream, ok := s.getStream(*frame.StreamId)
 
 			if !ok {
-				// @TODO: debug log
+				argErr := wire.NewError("ARG", "Stream is closed")
+				errFrame := wire.NewStreamFrame(*frame.StreamId, argErr)
+				s.commands <- wire.NewArray([]wire.Value{outMarker, errFrame})
 				continue
 			}
 

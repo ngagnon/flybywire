@@ -99,10 +99,12 @@ func readCommandFrame(cmd *Array) (Frame, error) {
 }
 
 func validateCommand(arr *Array) error {
-	for _, item := range arr.Values {
-		if _, ok := item.(*Blob); !ok {
-			return fmt.Errorf("%w: invalid command, unexpected %s", ErrFormat, item.Name())
-		}
+	if len(arr.Values) == 0 {
+		return fmt.Errorf("%w: unexpected empty array", ErrFormat)
+	}
+
+	if _, ok := arr.Values[0].(*Blob); !ok {
+		return fmt.Errorf("%w: command name not a string, got %s instead", ErrFormat, arr.Values[0].Name())
 	}
 
 	return nil
@@ -129,7 +131,7 @@ func readValue(r *bufio.Reader, canBeStream bool) (Value, error) {
 		return Null, nil
 	}
 
-	if b == '>' || b == '*' || b == '$' {
+	if b == '>' || b == '*' || b == '$' || b == ':' {
 		size, err := readSize(r)
 
 		if err != nil {
@@ -147,6 +149,8 @@ func readValue(r *bufio.Reader, canBeStream bool) (Value, error) {
 			return handleArray(r, size)
 		case '$':
 			return handleBlob(r, size)
+		case ':':
+			return &Integer{Value: size}, nil
 		}
 	}
 

@@ -26,8 +26,8 @@ func Handle(conn net.Conn, cb CommandHandler) {
 		terminate: make(chan struct{}, 3),
 		done:      make(chan struct{}),
 		waitGroup: &sync.WaitGroup{},
-		out:       make(chan wire.Value),
-		commands:  make(chan *wire.Array),
+		out:       make(chan wire.Value, 5),
+		commands:  make(chan *wire.Array, 5),
 	}
 
 	go handleReads(conn, session)

@@ -23,6 +23,7 @@ var commandHandlers = map[string]commandHandler{
 	"ADDUSER":  handleAddUser,
 	"SHOWUSER": handleShowUser,
 	"STREAM":   handleStream,
+	"CLOSE":    handleClose,
 }
 
 var dir string

@@ -43,6 +43,18 @@ class Server
     end
 end
 
+module Wire
+    class Integer
+        def initialize(val)
+            @val = val
+        end
+
+        def put(s)
+            s.puts ":#{@val}\n"
+        end
+    end
+end
+
 class RESPIO
     def puts(s)
         if !s.end_with? "\n"
@@ -56,8 +68,12 @@ class RESPIO
         @s.puts "*#{items.length}\n"
 
         items.each do |s|
-            @s.puts "$#{s.length}\n"
-            @s.puts "#{s}\n"
+            if s.respond_to?(:put)
+                s.put(@s)
+            else
+                @s.puts "$#{s.length}\n"
+                @s.puts "#{s}\n"
+            end
         end
     end
 
@@ -69,7 +85,7 @@ class RESPIO
         @s.puts "_\n"
     end
 
-    def pub_blob(blob)
+    def put_blob(blob)
         @s.puts "$#{blob.length}\n"
         @s.puts "#{blob}\n"
     end
@@ -82,6 +98,16 @@ class BufferedRESP < RESPIO
 
     def flush(sock)
         sock.puts @s.string
+    end
+end
+
+class Frame
+    attr_reader :id
+    attr_reader :payload
+
+    def initialize(id, payload)
+        @id = id
+        @payload = payload
     end
 end
 
@@ -147,6 +173,12 @@ class RESP < RESPIO
             end
 
             return [:map, map]
+        elsif line.start_with? '>'
+            line.delete_prefix!(">")
+            stream_id = line.to_i
+            payload = get_next()
+
+            return [:frame, Frame.new(stream_id, payload)]
         elsif line.start_with? '#'
             return [:bool, line[1] == 't']
         elsif line == '_'
@@ -170,7 +202,7 @@ class RESP < RESPIO
         (type, val) = get_next()
 
         if type != :string
-            raise 'get_string: did not get a string'
+            raise "get_string: did not get a string, got #{type.to_s} (#{val.to_s})"
         end
 
         val

@@ -11,18 +11,18 @@ import (
 type frameKind int
 
 const (
-	cancel frameKind = iota
+	data frameKind = iota
 	finish
-	data
 )
 
 type frame struct {
-	kind    frameKind
+	end     bool
 	payload []byte
 }
 
 type stream struct {
 	frames    chan frame
+	cancel    chan struct{}
 	finalPath string
 	file      *os.File
 }
@@ -36,6 +36,7 @@ func (s *S) OpenStream(file *os.File, finalPath string) (id int, ok bool) {
 	if ok {
 		stream := &stream{
 			frames:    make(chan frame, 5),
+			cancel:    make(chan struct{}, 2),
 			finalPath: finalPath,
 			file:      file,
 		}
@@ -45,6 +46,18 @@ func (s *S) OpenStream(file *os.File, finalPath string) (id int, ok bool) {
 	}
 
 	return
+}
+
+func (s *S) CloseStream(id int) bool {
+	stream, ok := s.getStream(id)
+
+	if !ok {
+		return false
+	}
+
+	stream.cancel <- struct{}{}
+
+	return true
 }
 
 func (s *S) releaseStream(id int) {
@@ -89,6 +102,12 @@ func handleStream(id int, s *stream, session *S) {
 		case <-session.done:
 			cancelWriteStream(s)
 			return
+		case <-s.cancel:
+			cancelWriteStream(s)
+			return
+		case <-watchdog.timeout.C:
+			handleTimeout(s, session, id)
+			return
 		default:
 		}
 
@@ -96,20 +115,17 @@ func handleStream(id int, s *stream, session *S) {
 		case <-session.done:
 			cancelWriteStream(s)
 			return
-		case <-watchdog.timeout.C:
+		case <-s.cancel:
 			cancelWriteStream(s)
-			err := wire.NewError("TIMEOUT", "Timed out due to inactivity")
-			session.out <- wire.NewStreamFrame(id, err)
+			return
+		case <-watchdog.timeout.C:
+			handleTimeout(s, session, id)
 			return
 		case frame := <-s.frames:
-			switch frame.kind {
-			case cancel:
-				cancelWriteStream(s)
-				return
-			case finish:
+			if frame.end {
 				finishWriteStream(s, id, session)
 				return
-			case data:
+			} else {
 				ok := handleChunk(frame.payload, id, s, session, watchdog)
 
 				if !ok {
@@ -118,6 +134,12 @@ func handleStream(id int, s *stream, session *S) {
 			}
 		}
 	}
+}
+
+func handleTimeout(s *stream, session *S, id int) {
+	cancelWriteStream(s)
+	err := wire.NewError("TIMEOUT", "Timed out due to inactivity")
+	session.out <- wire.NewStreamFrame(id, err)
 }
 
 func handleChunk(chunk []byte, id int, s *stream, session *S, wd *watchdog) bool {
@@ -155,9 +177,9 @@ func finishWriteStream(s *stream, id int, session *S) {
 }
 
 func newDataFrame(payload []byte) frame {
-	return frame{kind: data, payload: payload}
+	return frame{end: false, payload: payload}
 }
 
 func newFinishFrame() frame {
-	return frame{kind: finish}
+	return frame{end: true}
 }
