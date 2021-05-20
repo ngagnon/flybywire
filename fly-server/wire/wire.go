@@ -14,8 +14,9 @@ type Value interface {
 	Name() string
 }
 
-type StreamHeader struct {
-	id int
+type StreamFrame struct {
+	id    int
+	Value Value
 }
 
 type null struct{}
@@ -60,14 +61,14 @@ var ErrFormat = errors.New("Protocol error")
 var ErrIO = errors.New("I/O error")
 
 func ReadFrame(r *bufio.Reader) (Frame, error) {
-	val, err := readValue(r)
+	val, err := readValue(r, true)
 
 	if err != nil {
 		return Frame{}, err
 	}
 
-	if header, ok := val.(*StreamHeader); ok {
-		return readStreamFrame(header.id, r)
+	if stream, ok := val.(*StreamFrame); ok {
+		return readStreamFrame(stream, r)
 	}
 
 	if cmd, ok := val.(*Array); ok {
@@ -77,21 +78,16 @@ func ReadFrame(r *bufio.Reader) (Frame, error) {
 	return Frame{}, fmt.Errorf("%w: unexpected %s", ErrFormat, val.Name())
 }
 
-func readStreamFrame(id int, r *bufio.Reader) (Frame, error) {
-	payload, err := readValue(r)
-
-	if err != nil {
-		return Frame{}, err
-	}
-
+func readStreamFrame(frame *StreamFrame, r *bufio.Reader) (Frame, error) {
+	payload := frame.Value
 	_, isBlob := payload.(*Blob)
 
 	if !isBlob && payload != Null {
-		err = fmt.Errorf("%w: invalid stream frame, unexpected %s", ErrFormat, payload.Name())
+		err := fmt.Errorf("%w: invalid stream frame, unexpected %s", ErrFormat, payload.Name())
 		return Frame{}, err
 	}
 
-	return Frame{StreamId: &id, Payload: payload}, nil
+	return Frame{StreamId: &frame.id, Payload: payload}, nil
 }
 
 func readCommandFrame(cmd *Array) (Frame, error) {
@@ -112,7 +108,7 @@ func validateCommand(arr *Array) error {
 	return nil
 }
 
-func readValue(r *bufio.Reader) (Value, error) {
+func readValue(r *bufio.Reader, canBeStream bool) (Value, error) {
 	b, err := r.ReadByte()
 
 	if err != nil {
@@ -134,7 +130,6 @@ func readValue(r *bufio.Reader) (Value, error) {
 	}
 
 	if b == '>' || b == '*' || b == '$' {
-		// @TODO: readSize might return an IO error, which we wouldn't want to bubble up as a protocol error
 		size, err := readSize(r)
 
 		if err != nil {
@@ -143,7 +138,11 @@ func readValue(r *bufio.Reader) (Value, error) {
 
 		switch b {
 		case '>':
-			return handleStreamHeader(size)
+			if !canBeStream {
+				return nil, fmt.Errorf("%w: unexpected stream header", ErrFormat)
+			}
+
+			return handleStreamFrame(size, r)
 		case '*':
 			return handleArray(r, size)
 		case '$':
@@ -154,8 +153,14 @@ func readValue(r *bufio.Reader) (Value, error) {
 	return nil, fmt.Errorf("%w: unexpected symbol %c", ErrFormat, rune(b))
 }
 
-func handleStreamHeader(id int) (*StreamHeader, error) {
-	return &StreamHeader{id: id}, nil
+func handleStreamFrame(id int, r *bufio.Reader) (*StreamFrame, error) {
+	val, err := readValue(r, false)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return NewStreamFrame(id, val), nil
 }
 
 func handleArray(r *bufio.Reader, len int) (*Array, error) {
@@ -164,7 +169,7 @@ func handleArray(r *bufio.Reader, len int) (*Array, error) {
 	}
 
 	for i := 0; i < len; i++ {
-		val, err := readValue(r)
+		val, err := readValue(r, false)
 
 		if err != nil {
 			return nil, err
@@ -267,8 +272,8 @@ func NewArray(a []Value) *Array {
 	return &Array{Values: a}
 }
 
-func NewStreamHeader(id int) *StreamHeader {
-	return &StreamHeader{id: id}
+func NewStreamFrame(id int, val Value) *StreamFrame {
+	return &StreamFrame{id: id, Value: val}
 }
 
 func (b *Bool) WriteTo(w io.Writer) error {
@@ -297,8 +302,11 @@ func (i *Integer) WriteTo(w io.Writer) (err error) {
 	return
 }
 
-func (i *StreamHeader) WriteTo(w io.Writer) (err error) {
-	_, err = fmt.Fprintf(w, ">%d\n", i.id)
+func (f *StreamFrame) WriteTo(w io.Writer) (err error) {
+	buf := new(bytes.Buffer)
+	fmt.Fprintf(buf, ">%d\n", f.id)
+	f.Value.WriteTo(buf)
+	_, err = buf.WriteTo(w)
 	return
 }
 
@@ -338,8 +346,8 @@ func (m *Map) WriteTo(w io.Writer) error {
 	return err
 }
 
-func (h *StreamHeader) Name() string {
-	return "stream header"
+func (h *StreamFrame) Name() string {
+	return "stream frame"
 }
 
 func (n *null) Name() string {

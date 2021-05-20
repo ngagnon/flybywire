@@ -90,12 +90,9 @@ func TestInvalidCommandFrame(t *testing.T) {
 
 func TestInvalidStreamFrame(t *testing.T) {
 	buf := new(bytes.Buffer)
+	payload := NewInteger(42)
 
-	if err := NewStreamHeader(10).WriteTo(buf); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := NewInteger(42).WriteTo(buf); err != nil {
+	if err := NewStreamFrame(10, payload).WriteTo(buf); err != nil {
 		t.Fatal(err)
 	}
 
@@ -110,12 +107,9 @@ func TestInvalidStreamFrame(t *testing.T) {
 func TestStreamBlobFrame(t *testing.T) {
 	buf := new(bytes.Buffer)
 	payload := []byte("Hello, world!")
+	blob := NewBlob(payload)
 
-	if err := NewStreamHeader(1).WriteTo(buf); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := NewBlob(payload).WriteTo(buf); err != nil {
+	if err := NewStreamFrame(1, blob).WriteTo(buf); err != nil {
 		t.Fatal(err)
 	}
 
@@ -148,11 +142,7 @@ func TestStreamBlobFrame(t *testing.T) {
 func TestStreamNullFrame(t *testing.T) {
 	buf := new(bytes.Buffer)
 
-	if err := NewStreamHeader(5).WriteTo(buf); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := Null.WriteTo(buf); err != nil {
+	if err := NewStreamFrame(5, Null).WriteTo(buf); err != nil {
 		t.Fatal(err)
 	}
 

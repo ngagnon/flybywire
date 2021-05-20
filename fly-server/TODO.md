@@ -1,5 +1,5 @@
 - Reorganize into packages (e.g. commands, server)
-- Continue working on more commands (file, ACLs)
+- Continue working on more commands
     - STREAM
     - CLOSE
     - DEL

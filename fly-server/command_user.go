@@ -4,11 +4,13 @@ import (
 	"regexp"
 
 	"github.com/ngagnon/fly-server/db"
+	log "github.com/ngagnon/fly-server/logging"
+	"github.com/ngagnon/fly-server/session"
 	"github.com/ngagnon/fly-server/wire"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func handleAddUser(args []wire.Value, s *session) wire.Value {
+func handleAddUser(args []wire.Value, s *session.S) wire.Value {
 	if len(args) != 2 {
 		return wire.NewError("ARG", "Command ADDUSER expects exactly 2 arguments")
 	}
@@ -61,7 +63,7 @@ func handleAddUser(args []wire.Value, s *session) wire.Value {
 	}
 
 	if singleUser {
-		s.user = newUser.Username
+		s.SetUser(newUser.Username)
 	}
 
 	if err = tx.AddUser(newUser); err != nil {
@@ -71,15 +73,17 @@ func handleAddUser(args []wire.Value, s *session) wire.Value {
 	return wire.OK
 }
 
-func handleWhoAmI(args []wire.Value, s *session) wire.Value {
-	if s.user == "" {
+func handleWhoAmI(args []wire.Value, s *session.S) wire.Value {
+	username := s.CurrentUser()
+
+	if username == "" {
 		return wire.Null
 	}
 
-	return wire.NewString(s.user)
+	return wire.NewString(username)
 }
 
-func handleShowUser(args []wire.Value, s *session) wire.Value {
+func handleShowUser(args []wire.Value, s *session.S) wire.Value {
 	if len(args) != 1 {
 		return wire.NewError("ARG", "Command SHOWUSER expects exactly 1 argument")
 	}

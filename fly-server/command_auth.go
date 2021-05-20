@@ -1,11 +1,12 @@
 package main
 
 import (
+	"github.com/ngagnon/fly-server/session"
 	"github.com/ngagnon/fly-server/wire"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func handleAuth(args []wire.Value, s *session) wire.Value {
+func handleAuth(args []wire.Value, s *session.S) wire.Value {
 	if len(args) == 0 {
 		return wire.NewError("ARG", "Command AUTH expects at least 1 argument")
 	}
@@ -40,7 +41,7 @@ func handleAuth(args []wire.Value, s *session) wire.Value {
 		return wire.NewError("DENIED", "Authentication failed")
 	}
 
-	s.user = string(username.Data)
+	s.SetUser(string(username.Data))
 	return wire.OK
 }
 

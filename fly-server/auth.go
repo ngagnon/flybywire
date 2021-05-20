@@ -1,6 +1,8 @@
 package main
 
-func checkAuth(s *session, path string, write bool) bool {
+import "github.com/ngagnon/fly-server/session"
+
+func checkAuth(s *session.S, path string, write bool) bool {
 	tx := flydb.RTxn()
 	defer tx.Complete()
 
@@ -8,15 +10,17 @@ func checkAuth(s *session, path string, write bool) bool {
 		return true
 	}
 
-	if s.user == "" {
+	username := s.CurrentUser()
+
+	if username == "" {
 		return false
 	}
 
 	// User doesn't exist anymore
-	user, ok := tx.FindUser(s.user)
+	user, ok := tx.FindUser(username)
 
 	if !ok {
-		s.user = ""
+		s.SetUser("")
 		return false
 	}
 
@@ -29,7 +33,7 @@ func checkAuth(s *session, path string, write bool) bool {
 	return true
 }
 
-func checkAdmin(s *session) bool {
+func checkAdmin(s *session.S) bool {
 	tx := flydb.RTxn()
 	defer tx.Complete()
 
@@ -37,15 +41,17 @@ func checkAdmin(s *session) bool {
 		return true
 	}
 
-	if s.user == "" {
+	username := s.CurrentUser()
+
+	if username == "" {
 		return false
 	}
 
 	// User doesn't exist anymore
-	user, ok := tx.FindUser(s.user)
+	user, ok := tx.FindUser(username)
 
 	if !ok {
-		s.user = ""
+		s.SetUser("")
 		return false
 	}
 
