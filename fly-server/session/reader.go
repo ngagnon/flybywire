@@ -43,8 +43,7 @@ func handleReads(conn io.Reader, s *S) {
 			stream, ok := s.getStream(*frame.StreamId)
 
 			if !ok {
-				protoErr := wire.NewError("PROTO", "Invalid stream ID %d", *frame.StreamId)
-				s.commands <- wire.NewArray([]wire.Value{outMarker, protoErr})
+				// @TODO: debug log
 				continue
 			}
 
