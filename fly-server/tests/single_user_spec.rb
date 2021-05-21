@@ -5,7 +5,7 @@ RSpec.describe 'Single-user mode' do
     before(:all) do
         @dir = Dir.mktmpdir 'fly'
         @s = Server.new(@dir, 6868)
-        @r = RESP.new(6868)
+        @r = Session.new(6868)
     end
 
     after(:all) do
@@ -47,7 +47,7 @@ RSpec.describe 'Single-user mode' do
         end
 
         it 'disallows unauthenticated operations' do
-            @r2 = RESP.new
+            @r2 = Session.new
 
             @r2.put_array('MKDIR', 'hello/world')
             line = @r2.get_error

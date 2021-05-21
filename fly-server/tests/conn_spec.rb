@@ -26,7 +26,7 @@ RSpec.describe 'Connection' do
     describe 'QUIT' do
         context 'authenticated' do
             before(:each) do
-                @r = RESP.new
+                @r = Session.new
                 @r.put_array('AUTH', 'PWD', 'example', 'supersecret')
                 @r.get_next
             end
@@ -61,7 +61,7 @@ RSpec.describe 'Connection' do
 
         context 'unauthenticated' do
             before(:each) do
-                @r = RESP.new
+                @r = Session.new
             end
 
             after(:each) do

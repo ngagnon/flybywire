@@ -11,7 +11,7 @@ RSpec.describe 'Authentication' do
     describe 'AUTH' do
         context 'valid password' do
             before(:all) do
-                @r = RESP.new
+                @r = Session.new
                 @r.put_array('AUTH', 'PWD', 'example', 'supersecret')
                 @line = @r.get_string
             end
@@ -40,7 +40,7 @@ RSpec.describe 'Authentication' do
 
         context 'invalid password' do
             before(:all) do
-                @r = RESP.new
+                @r = Session.new
                 @r.put_array('AUTH', 'PWD', 'example', 'wrongpassword')
                 @line = @r.get_error
             end

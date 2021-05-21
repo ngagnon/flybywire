@@ -1,7 +1,7 @@
-- Reorganize into packages (e.g. commands, server)
+- Put commands in a separate package
 - Split spec_helper into many files in a helper/ sub-folder
 - Continue working on more commands
-    - STREAM
+    - STREAM R
     - DEL
     - LIST
     - MOVE
