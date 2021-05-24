@@ -49,10 +49,19 @@ func handleReads(conn io.Reader, s *S) {
 				continue
 			}
 
+			if stream.mode() != write {
+				argErr := wire.NewError("ARG", "Stream is not open for writing")
+				errFrame := wire.NewStreamFrame(*frame.StreamId, argErr)
+				s.commands <- wire.NewArray([]wire.Value{outMarker, errFrame})
+				continue
+			}
+
+			writeStream := stream.(*writeStream)
+
 			if blob, isBlob := frame.Payload.(*wire.Blob); isBlob {
-				stream.frames <- newDataFrame(blob.Data)
+				writeStream.frames <- newDataFrame(blob.Data)
 			} else if frame.Payload == wire.Null {
-				stream.frames <- newFinishFrame()
+				writeStream.frames <- newFinishFrame()
 			} else {
 				protoErr := wire.NewError("PROTO", "Expected blob or null after stream header, got %s", frame.Payload.Name())
 				s.commands <- wire.NewArray([]wire.Value{outMarker, protoErr})

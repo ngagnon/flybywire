@@ -54,30 +54,33 @@ func handleStream(args []wire.Value, s *session.S) wire.Value {
 
 	vPath := "/" + strings.TrimPrefix(string(pathBlob.Data), "/")
 
-	if string(mode.Data) != "W" {
+	if string(mode.Data) != "W" && string(mode.Data) != "R" {
 		return wire.NewError("ARG", "Unsupported mode: %s", mode.Data)
 	}
 
-	if !checkAuth(s, vPath, true) {
+	writing := string(mode.Data) == "W"
+
+	if !checkAuth(s, vPath, writing) {
 		return wire.NewError("DENIED", "Access denied")
 	}
 
-	/* @TODO: check that the folder exists */
-
-	f, err := os.CreateTemp("", "flytmp")
-
-	if err != nil {
-		// @TODO: debug log
-		return wire.NewError("ERR", "Unexpected error occurred")
-	}
-
 	realPath := resolveVirtualPath(vPath)
-	id, ok := s.OpenStream(f, realPath)
 
-	if !ok {
-		f.Close()
-		return wire.NewError("TOOMANY", "Too many streams open")
+	if writing {
+		id, err := s.NewWriteStream(realPath)
+
+		if err != nil {
+			return err
+		}
+
+		return wire.NewInteger(id)
+	} else {
+		id, err := s.NewReadStream(realPath)
+
+		if err != nil {
+			return err
+		}
+
+		return wire.NewInteger(id)
 	}
-
-	return wire.NewInteger(id)
 }

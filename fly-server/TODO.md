@@ -1,7 +1,6 @@
 - Put commands in a separate package
-- Split spec_helper into many files in a helper/ sub-folder
+- Chunk size negotiation
 - Continue working on more commands
-    - STREAM R
     - DEL
     - LIST
     - MOVE

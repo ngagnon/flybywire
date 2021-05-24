@@ -13,7 +13,7 @@ type S struct {
 	done       chan struct{}
 	out        chan wire.Value
 	commands   chan *wire.Array
-	streams    [16]*stream
+	streams    [16]stream
 	streamLock sync.RWMutex
 	userLock   sync.RWMutex
 	user       string

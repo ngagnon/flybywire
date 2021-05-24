@@ -30,9 +30,9 @@ module Wire
         elsif line.start_with? '$'
             line.delete_prefix!("$")
             len = line.to_i
-            s = s.read(len)
+            str = s.read(len)
             s.gets("\n")
-            return [:blob, s]
+            return [:blob, str]
         elsif line.start_with? '%'
             line.delete_prefix!("%")
             num_pairs = line.to_i

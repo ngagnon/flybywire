@@ -75,6 +75,8 @@ Terminated the connection.
 
 Response:
 
++OK
+
 GETOPT
 ---
 
@@ -82,9 +84,17 @@ Usage: GETOPT key
 
 Gets a server option. Currently available options:
 
-- MaxChunkSize: returns the maximum chunk size that the server will accept
+- ReadMaxChunkSize: gets the maximum chunk size that the client would like to get (defaults to 16KB)
+- WriteMaxChunkSize: returns the maximum chunk size that the server will accept
 
-+OK
+SETOPT
+---
+
+Usage: SETOPT key value
+
+Sets a server option. Currently available options:
+
+- ReadMaxChunkSize: sets the maximum chunk size that the client would like to get (valid values: 16KB to 16MB)
 
 File Management
 ===
@@ -102,7 +112,7 @@ Supports wildcards: * and **.
 STREAM
 ---
 
-Usage: STREAM R/W path maxChunkSize
+Usage: STREAM R/W path
 
 Opens the given file for reading (R) or writing (W) 
 
@@ -118,9 +128,6 @@ blob\n
 
 The ">" message type is a special stream message that wraps
 another value, usually a blob (or an error).
-
-maxChunkSize can be any value from 16KB to 16MB. It's only
-passed for reading mode.
 
 When opening the file for writing, the client is expected to
 send chunks to the server in the same format.
