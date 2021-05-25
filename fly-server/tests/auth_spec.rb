@@ -26,9 +26,9 @@ RSpec.describe 'Authentication' do
 
             it 'logs in the user' do
                 @r.put_array('WHOAMI')
-                (type, val) = @r.get_next
-                expect(type).to eq(:string)
-                expect(val).to eq('example')
+                resp = @r.get_next
+                expect(resp).to be_a(Wire::String)
+                expect(resp.value).to eq('example')
             end
 
             it 'lets user run commands' do
@@ -55,8 +55,8 @@ RSpec.describe 'Authentication' do
 
             it 'does not log you in' do
                 @r.put_array('WHOAMI')
-                (type, val) = @r.get_next
-                expect(type).to eq(:null)
+                resp = @r.get_next
+                expect(resp).to be_a(Wire::Null)
             end
         end
     end

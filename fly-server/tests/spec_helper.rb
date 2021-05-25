@@ -7,6 +7,7 @@ require 'test-prof'
 require_relative 'helpers/server'
 require_relative 'helpers/session'
 require_relative 'helpers/wire'
+require_relative 'helpers/username'
 
 RSpec.configure do |config|
     config.before(:suite) do

@@ -34,10 +34,10 @@ RSpec.describe 'Single-user mode' do
         it 'is created as admin' do
             @r.put_array('SHOWUSER', 'example')
             data = @r.get_map
-            expect(data['username'][0]).to eq(:string)
-            expect(data['username'][1]).to eq('example')
-            expect(data['admin'][0]).to eq(:bool)
-            expect(data['admin'][1]).to eq(true)
+            expect(data['username']).to be_a(Wire::String)
+            expect(data['username'].value).to eq('example')
+            expect(data['admin']).to be_a(Wire::Boolean)
+            expect(data['admin'].value).to be(true)
         end
 
         it 'becomes current user' do

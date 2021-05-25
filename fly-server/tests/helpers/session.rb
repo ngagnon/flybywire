@@ -67,60 +67,67 @@ class Session < SessionIO
         Wire.get_next(@s)
     end
 
-    def get_int()
-        (type, val) = get_next()
+    def cmd(name, *items)
+        arr = Wire::Array.new([name].concat(items))
+        arr.put(@s)
 
-        if type != :int
+        get_next
+    end
+
+    def get_int()
+        val = get_next()
+
+        if !val.instance_of? Wire::Integer
             raise 'get_int: did not get an integer'
         end
 
-        val
+        val.value
     end
 
     def get_string()
-        (type, val) = get_next()
+        val = get_next()
 
-        if type != :string
-            raise "get_string: did not get a string, got #{type.to_s} (#{val.to_s})"
+        if !val.instance_of? Wire::String
+            raise "get_string: did not get a string, got #{val.class}"
         end
 
-        val
+        val.value
     end
 
     def get_error()
-        (type, val) = get_next()
+        val = get_next()
 
-        if type != :error
+        if !val.instance_of? Wire::Error
             raise 'get_error: did not get an error'
         end
 
-        val
+        val.code + ' ' + val.msg
     end
 
     def get_blob()
-        (type, val) = get_next()
+        val = get_next()
 
-        if type != :blob
+        if !val.instance_of? Wire::Blob
             raise 'get_blob: did not get a blob'
         end
 
-        val
+        val.value
     end
 
     def get_str_or_blob()
-        (type, val) = get_next()
+        val = get_next()
 
-        if type != :blob && type != :string
+        if (!val.instance_of? Wire::Blob) && (!val.instance_of? Wire::String)
             raise 'get_str_or_blob: did not get a string or a blob'
         end
 
-        val
+        val.value
     end
 
     def get_map()
-        (type, val) = get_next()
+        val = get_next()
 
-        if type != :map
+        if !val.instance_of? Wire::Map
             raise "get_map: did not get a map, got '#{val}'"
         end
 

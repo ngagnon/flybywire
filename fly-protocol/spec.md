@@ -287,16 +287,9 @@ Resets a user's password.
 SETADM
 ---
 
-Usage: SETADM user
+Usage: SETADM user #t/#f
 
-Make the given user an administrator (has all permissions).
-
-NOTADM
----
-
-Usage: NOTADM user
-
-Make the given user a regular user.
+Sets the administrator bit on the given user (has all permissions).
 
 CHROOT
 ---

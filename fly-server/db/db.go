@@ -51,6 +51,8 @@ type Txn struct {
 	db *Handle
 }
 
+var ErrNotFound = errors.New("not found")
+
 func Open(dir string) (*Handle, error) {
 	db := &Handle{
 		dir:      dir,
@@ -104,6 +106,16 @@ func (tx *RTxn) Complete() {
 	tx.db.lock.RUnlock()
 }
 
+func (tx *RTxn) FetchAllUsers() []User {
+	users := make([]User, 0, len(tx.db.users))
+
+	for _, u := range tx.db.users {
+		users = append(users, u)
+	}
+
+	return users
+}
+
 func (tx *Txn) NumUsers() int {
 	return len(tx.db.users)
 }
@@ -127,6 +139,17 @@ func (db *Handle) findUser(username string) (user User, found bool) {
 
 func (tx *Txn) AddUser(u *User) error {
 	tx.db.users[u.Username] = *u
+	tx.db.writeUsers()
+
+	return tx.db.err
+}
+
+func (tx *Txn) DeleteUser(username string) error {
+	if _, ok := tx.db.users[username]; !ok {
+		return fmt.Errorf("user %w: %s", ErrNotFound, username)
+	}
+
+	delete(tx.db.users, username)
 	tx.db.writeUsers()
 
 	return tx.db.err

@@ -1,7 +1,8 @@
 RSpec.describe 'CLOSE' do
     before(:all) do
         $admin.put_array('STREAM', 'W', 'close-test.txt')
-        (_, @id) = $admin.get_next
+        resp = $admin.get_next
+        @id = resp.value
 
         $admin.put_stream(@id)
         $admin.put_blob("hello1\n")
@@ -18,12 +19,11 @@ RSpec.describe 'CLOSE' do
         $admin.put_stream(@id)
         $admin.put_blob("hello1\n")
 
-        (type, fr) = $admin.get_next
-        expect(type).to be(:frame)
-        expect(fr.id).to eq(@id)
-        (type, msg) = fr.payload
-        expect(type).to be(:error)
-        expect(msg).to include('closed')
+        resp = $admin.get_next
+        expect(resp).to be_a(Wire::Frame)
+        expect(resp.id).to eq(@id)
+        expect(resp.payload).to be_a(Wire::Error)
+        expect(resp.payload.msg).to include('closed')
     end
 
     it 'does not create file' do

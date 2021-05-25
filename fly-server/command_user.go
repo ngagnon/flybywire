@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"regexp"
 
 	"github.com/ngagnon/fly-server/db"
@@ -9,6 +10,24 @@ import (
 	"github.com/ngagnon/fly-server/wire"
 	"golang.org/x/crypto/bcrypt"
 )
+
+func handleListUser(args []wire.Value, s *session.S) wire.Value {
+	if !checkAdmin(s) {
+		return wire.NewError("DENIED", "You are not allowed to manage users")
+	}
+
+	tx := flydb.RTxn()
+	users := tx.FetchAllUsers()
+	tx.Complete()
+
+	usernames := make([]wire.Value, 0, len(users))
+
+	for _, u := range users {
+		usernames = append(usernames, wire.NewString(u.Username))
+	}
+
+	return wire.NewArray(usernames)
+}
 
 func handleAddUser(args []wire.Value, s *session.S) wire.Value {
 	if len(args) != 2 {
@@ -67,7 +86,7 @@ func handleAddUser(args []wire.Value, s *session.S) wire.Value {
 	}
 
 	if err = tx.AddUser(newUser); err != nil {
-		log.Fatalf("%v", err)
+		log.Fatalf("Failed to create user: %v", err)
 	}
 
 	return wire.OK
@@ -112,4 +131,34 @@ func handleShowUser(args []wire.Value, s *session.S) wire.Value {
 	result["admin"] = wire.NewBoolean(user.Admin)
 
 	return wire.NewMap(result)
+}
+
+func handleRmuser(args []wire.Value, s *session.S) wire.Value {
+	if len(args) != 1 {
+		return wire.NewError("ARG", "Command RMUSER expects exactly 1 argument")
+	}
+
+	if !checkAdmin(s) {
+		return wire.NewError("DENIED", "You are not allowed to manage users.")
+	}
+
+	username, ok := args[0].(*wire.Blob)
+
+	if !ok {
+		return wire.NewError("ARG", "Username should be a blob, got %s", args[0].Name())
+	}
+
+	tx := flydb.Txn()
+	err := tx.DeleteUser(string(username.Data))
+	tx.Complete()
+
+	if errors.Is(err, db.ErrNotFound) {
+		return wire.NewError("NOTFOUND", "User not found")
+	}
+
+	if err != nil {
+		log.Fatalf("Failed to delete user user: %v", err)
+	}
+
+	return wire.OK
 }
