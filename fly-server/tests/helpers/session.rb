@@ -74,6 +74,14 @@ class Session < SessionIO
         get_next
     end
 
+    def cmd!(name, *items)
+        resp = cmd(name, *items)
+
+        if resp.instance_of? Wire::Error
+            raise "unexpected error: #{resp.code}: #{resp.msg}"
+        end
+    end
+
     def get_int()
         val = get_next()
 

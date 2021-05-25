@@ -7,7 +7,7 @@
 RSpec.describe 'SHOWUSER' do
     before(:all) do
         @username = Username.get_next
-        admin.cmd('ADDUSER', @username, 'topsecret')
+        admin.cmd!('ADDUSER', @username, 'topsecret')
         @resp = admin.cmd('SHOWUSER', @username)
     end
 
@@ -45,7 +45,7 @@ RSpec.describe 'RMUSER' do
     before(:all) do
         @usernames = Username.get_next(3)
         @usernames.each do |u|
-            admin.cmd('ADDUSER', u, 'topsecret')
+            admin.cmd!('ADDUSER', u, 'topsecret')
         end
 
         @resp = admin.cmd('RMUSER', @usernames[1])
@@ -75,7 +75,7 @@ RSpec.describe 'SETPWD' do
     context 'regular user' do
         before(:all) do
             @username = Username.get_next
-            admin.cmd('ADDUSER', @username, 'topsecret')
+            admin.cmd!('ADDUSER', @username, 'topsecret')
         end
 
         context 'self' do
@@ -105,7 +105,7 @@ RSpec.describe 'SETPWD' do
     context 'unauthenticated' do
         before(:all) do
             @username = Username.get_next
-            admin.cmd('ADDUSER', @username, 'topsecret')
+            admin.cmd!('ADDUSER', @username, 'topsecret')
             @resp = unauth.cmd('SETPWD', @username, 'newpassword')
         end
 
@@ -130,7 +130,7 @@ RSpec.describe 'LISTUSER' do
     before(:all) do
         @usernames = Username.get_next(3)
         @usernames.each do |u|
-            admin.cmd('ADDUSER', u, 'topsecret')
+            admin.cmd!('ADDUSER', u, 'topsecret')
         end
     end
 
@@ -141,7 +141,7 @@ RSpec.describe 'LISTUSER' do
         expect(resp.elems.any? { |x| @usernames[1] == x.value }).to be(true)
         expect(resp.elems.any? { |x| @usernames[2] == x.value }).to be(true)
 
-        admin.cmd('RMUSER', @usernames[1])
+        admin.cmd!('RMUSER', @usernames[1])
 
         resp = admin.cmd('LISTUSER')
         expect(resp.elems.any? { |x| @usernames[1] == x.value }).to be(false)

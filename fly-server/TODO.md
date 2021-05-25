@@ -1,7 +1,4 @@
 - Put commands in a separate package
-- Chunk size negotiation (GETOPT/SETOPT)
-- Could probably do better than global variables in the ruby tests
-- Add a cmd! which makes sure the return type is not error
 - Race condition with the CLOSE tests sometimes
 - Replace all put_array with cmd
 - .fly folder should be hidden from commands!! (vfs should take care of this)
@@ -10,6 +7,7 @@
 - Continue working on more commands
     - SETPWD
     - SETADM
+    - GETOPT/SETOP => chunk size negotiation
     - CHROOT
     - DEL
     - AUTH TOK / TOKEN
