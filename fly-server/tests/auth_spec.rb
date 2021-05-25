@@ -3,8 +3,8 @@ require 'tmpdir'
 
 RSpec.describe 'Authentication' do
     it 'disallows unauthenticated access' do
-        $unauth.put_array('MKDIR', 'hello/world')
-        line = $unauth.get_error
+        unauth.put_array('MKDIR', 'hello/world')
+        line = unauth.get_error
         expect(line).to start_with('DENIED')
     end
 

@@ -1,8 +1,8 @@
 RSpec.describe 'MKDIR' do
     context 'authorized' do
         before(:all) do
-            $admin.put_array('MKDIR', 'world')
-            @line = $admin.get_string
+            admin.put_array('MKDIR', 'world')
+            @line = admin.get_string
         end
 
         it 'returns OK' do

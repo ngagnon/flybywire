@@ -2,23 +2,23 @@ RSpec.describe 'Connection' do
     describe 'PING' do
         context 'authenticated' do
             it 'returns PONG' do
-                $admin.put_array('PING')
-                line = $admin.get_string
+                admin.put_array('PING')
+                line = admin.get_string
                 expect(line).to eq('PONG')
             end
         end
 
         context 'unauthenticated' do
             it 'returns PONG' do
-                $unauth.put_array('PING')
-                line = $unauth.get_string
+                unauth.put_array('PING')
+                line = unauth.get_string
                 expect(line).to eq('PONG')
             end
         end
 
         it 'is case insensitive' do
-            $unauth.put_array('pinG')
-            line = $unauth.get_string
+            unauth.put_array('pinG')
+            line = unauth.get_string
             expect(line).to eq('PONG')
         end
     end

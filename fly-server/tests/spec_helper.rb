@@ -9,32 +9,52 @@ require_relative 'helpers/session'
 require_relative 'helpers/wire'
 require_relative 'helpers/username'
 
-RSpec.configure do |config|
-    config.before(:suite) do
+# @TODO: regularUser not setup
+module TestSuite
+    def self.setup()
         $dir = Dir.mktmpdir 'fly'
-        @s = Server.new $dir
-        @r = Session.new
+        @@server = Server.new $dir
 
-        @r.put_array('ADDUSER', 'example', 'supersecret')
-        @r.get_next
+        session = Session.new
+        session.put_array('ADDUSER', 'example', 'supersecret')
+        session.get_next
+        session.close
 
-        @r.close
-        @s.kill
+        @@server.kill
+        @@server = Server.new $dir
 
-        $s = Server.new $dir
+        @@admin= Session.new
+        @@admin.put_array('AUTH', 'PWD', 'example', 'supersecret')
+        @@admin.get_next
 
-        $admin = Session.new
-        $admin.put_array('AUTH', 'PWD', 'example', 'supersecret')
-        $admin.get_string
+        @@unauth = Session.new
+    end
 
-        $unauth = Session.new
+    def self.teardown()
+        @@admin.close
+        @@unauth.close
+        @@server.kill
+        FileUtils.rm_rf $dir
+    end
+
+    def admin()
+        @@admin
+    end
+
+    def unauth()
+        @@unauth
+    end
+end
+
+RSpec.configure do |config|
+    config.include TestSuite
+
+    config.before(:suite) do
+        TestSuite.setup
     end
 
     config.after(:suite) do
-        $admin.close
-        $unauth.close
-        $s.kill
-        FileUtils.rm_rf $dir
+        TestSuite.teardown
     end
 end
 
