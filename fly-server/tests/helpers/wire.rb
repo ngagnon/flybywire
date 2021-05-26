@@ -40,6 +40,8 @@ module Wire
             @elems.each do |elem|
                 if elem.is_a? ::String
                     Blob.new(elem).put(s)
+                elsif elem.is_a? ::Integer
+                    Integer.new(elem).put(s)
                 else
                     elem.put(s)
                 end

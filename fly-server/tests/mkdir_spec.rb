@@ -1,12 +1,12 @@
 RSpec.describe 'MKDIR' do
     context 'authorized' do
         before(:all) do
-            admin.put_array('MKDIR', 'world')
-            @line = admin.get_string
+            @resp = admin.cmd('MKDIR', 'world')
         end
 
         it 'returns OK' do
-            expect(@line).to eq('OK')
+            expect(@resp).to be_a(Wire::String)
+            expect(@resp.value).to eq('OK')
         end
 
         it 'creates a folder' do

@@ -16,16 +16,14 @@ module TestSuite
         @@server = Server.new $dir
 
         session = Session.new
-        session.put_array('ADDUSER', 'example', 'supersecret')
-        session.get_next
+        session.cmd!('ADDUSER', 'example', 'supersecret')
         session.close
 
         @@server.kill
         @@server = Server.new $dir
 
         @@admin= Session.new
-        @@admin.put_array('AUTH', 'PWD', 'example', 'supersecret')
-        @@admin.get_next
+        @@admin.cmd!('AUTH', 'PWD', 'example', 'supersecret')
 
         @@unauth = Session.new
     end

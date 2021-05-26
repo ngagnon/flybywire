@@ -2,8 +2,7 @@ RSpec.describe 'STREAM' do
     context 'authorized' do
         describe 'write' do
             before(:all) do
-                admin.put_array('STREAM', 'W', 'test.txt')
-                @resp = admin.get_next
+                @resp = admin.cmd!('STREAM', 'W', 'test.txt')
                 @id = @resp.value
             end
 
@@ -59,8 +58,7 @@ RSpec.describe 'STREAM' do
 
         describe 'read' do
             before(:all) do
-                admin.put_array('STREAM', 'W', 'test-read.txt')
-                resp = admin.get_next
+                resp = admin.cmd!('STREAM', 'W', 'test-read.txt')
                 @id = resp.value
 
                 admin.put_stream(@id)
@@ -77,8 +75,7 @@ RSpec.describe 'STREAM' do
                     i = i - 1
                 end
 
-                admin.put_array('STREAM', 'R', 'test-read.txt')
-                @resp = admin.get_next
+                @resp = admin.cmd!('STREAM', 'R', 'test-read.txt')
             end
 
             it 'returns stream id' do
@@ -103,8 +100,7 @@ RSpec.describe 'STREAM' do
             end
 
             it 'returns NOTFOUND when file does not exist' do
-                admin.put_array('STREAM', 'R', 'test-not-exist.txt')
-                resp = admin.get_next
+                resp = admin.cmd('STREAM', 'R', 'test-not-exist.txt')
                 expect(resp).to be_a(Wire::Error)
                 expect(resp.code).to eq('NOTFOUND')
             end

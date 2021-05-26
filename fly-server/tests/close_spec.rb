@@ -1,18 +1,17 @@
 RSpec.describe 'CLOSE' do
     before(:all) do
-        admin.put_array('STREAM', 'W', 'close-test.txt')
-        resp = admin.get_next
-        @id = resp.value
+        resp = admin.cmd('STREAM', 'W', 'close-test.txt')
+        @id = resp.value.to_i
 
         admin.put_stream(@id)
         admin.put_blob("hello1\n")
 
-        admin.put_array('CLOSE', Wire::Integer.new(@id))
-        @line = admin.get_string
+        @resp = admin.cmd('CLOSE', @id)
     end
 
     it 'returns OK' do
-        expect(@line).to eq('OK')
+        expect(@resp).to be_a(Wire::String)
+        expect(@resp.value).to eq('OK')
     end
 
     it 'closes stream' do

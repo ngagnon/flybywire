@@ -1,7 +1,7 @@
 - Put commands in a separate package
 - Race condition with the CLOSE tests sometimes
-- Replace all put_array with cmd
 - .fly folder should be hidden from commands!! (vfs should take care of this)
+- Not sure I want to be case insensitive
 - Strings vs blobs
 - Some args that are blobs could have been another type. Also, command names could be simple strings
 - Continue working on more commands

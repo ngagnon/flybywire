@@ -2,54 +2,53 @@ RSpec.describe 'Connection' do
     describe 'PING' do
         context 'authenticated' do
             it 'returns PONG' do
-                admin.put_array('PING')
-                line = admin.get_string
-                expect(line).to eq('PONG')
+                resp = admin.cmd('PING')
+                expect(resp).to be_a(Wire::String)
+                expect(resp.value).to eq('PONG')
             end
         end
 
         context 'unauthenticated' do
             it 'returns PONG' do
-                unauth.put_array('PING')
-                line = unauth.get_string
-                expect(line).to eq('PONG')
+                resp = unauth.cmd('PING')
+                expect(resp).to be_a(Wire::String)
+                expect(resp.value).to eq('PONG')
             end
         end
 
         it 'is case insensitive' do
-            unauth.put_array('pinG')
-            line = unauth.get_string
-            expect(line).to eq('PONG')
+            resp = unauth.cmd('pinG')
+            expect(resp).to be_a(Wire::String)
+            expect(resp.value).to eq('PONG')
         end
     end
 
     describe 'QUIT' do
         context 'authenticated' do
             before(:each) do
-                @r = Session.new
-                @r.put_array('AUTH', 'PWD', 'example', 'supersecret')
-                @r.get_next
+                @session = Session.new
+                @session.cmd!('AUTH', 'PWD', 'example', 'supersecret')
             end
 
             after(:each) do
-                @r.close
+                @session.close
             end
 
             it 'returns OK' do
-                @r.put_array('QUIT')
-                line = @r.get_string
-                expect(line).to eq('OK')
+                resp = @session.cmd('QUIT')
+                expect(resp).to be_a(Wire::String)
+                expect(resp.value).to eq('OK')
             end
 
             it 'cancels all pipelined commands' do
-                @r.buffer do |b|
+                @session.buffer do |b|
                     b.put_array("MKDIR", "hello")
                     b.put_array("QUIT")
                     b.put_array("MKDIR", "world")
                 end
 
-                @r.get_string
-                @r.get_string
+                @session.get_string
+                @session.get_string
 
                 newdir = File.join($dir, 'hello')
                 expect(Dir.exist? newdir).to be true
@@ -61,17 +60,17 @@ RSpec.describe 'Connection' do
 
         context 'unauthenticated' do
             before(:each) do
-                @r = Session.new
+                @session = Session.new
             end
 
             after(:each) do
-                @r.close
+                @session.close
             end
 
             it 'returns OK' do
-                @r.put_array('QUIT')
-                line = @r.get_string
-                expect(line).to eq('OK')
+                resp = @session.cmd('QUIT')
+                expect(resp).to be_a(Wire::String)
+                expect(resp.value).to eq('OK')
             end
         end
     end

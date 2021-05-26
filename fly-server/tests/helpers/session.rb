@@ -80,6 +80,8 @@ class Session < SessionIO
         if resp.instance_of? Wire::Error
             raise "unexpected error: #{resp.code}: #{resp.msg}"
         end
+
+        resp
     end
 
     def get_int()
