@@ -19,7 +19,7 @@ func runCommands(cb CommandHandler, s *S) {
 		case arr := <-s.commands:
 			if arr.Values[0] == outMarker {
 				s.out <- arr.Values[1]
-			} else if string(arr.Values[0].(*wire.Blob).Data) == "QUIT" {
+			} else if arr.Values[0].(*wire.String).Value == "QUIT" {
 				s.out <- wire.OK
 				close(s.out)
 				return

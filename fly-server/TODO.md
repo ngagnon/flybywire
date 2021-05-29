@@ -1,9 +1,10 @@
+- To test for command case sensitivity: second time cmd() is called on a command,
+  mix up the case. Then, in after(:suite), make sure all commands
+  were called with mixed casing!
+- Perhaps change >X to @X, call them tags? And make wire unaware of command frames, streams and such?. Wire shouldn't do any validation of the command array.
 - Put commands in a separate package
-- Race condition with the CLOSE tests sometimes
-- .fly folder should be hidden from commands!! (vfs should take care of this)
-- Not sure I want to be case insensitive
-- Strings vs blobs
-- Some args that are blobs could have been another type. Also, command names could be simple strings
+- Race condition with the CLOSE tests sometimes?
+- .fly folder should be hidden from commands!! (vfs should take care of this. write test)
 - Continue working on more commands
     - SETPWD
     - SETADM

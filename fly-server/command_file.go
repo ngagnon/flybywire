@@ -13,13 +13,13 @@ func handleMkdir(args []wire.Value, s *session.S) wire.Value {
 		return wire.NewError("ARG", "Command MKDIR expects exactly one argument")
 	}
 
-	pathBlob, ok := args[0].(*wire.Blob)
+	rawPath, ok := args[0].(*wire.String)
 
 	if !ok {
-		return wire.NewError("ARG", "Path should be a blob, got %s", args[0].Name())
+		return wire.NewError("ARG", "Path should be a string, got %s", args[0].Name())
 	}
 
-	vPath := "/" + strings.Trim(string(pathBlob.Data), "/")
+	vPath := "/" + strings.Trim(rawPath.Value, "/")
 
 	if !checkAuth(s, vPath, true) {
 		return wire.NewError("DENIED", "Access denied")
@@ -40,25 +40,25 @@ func handleStream(args []wire.Value, s *session.S) wire.Value {
 		return wire.NewError("ARG", "Command STREAM expects exactly 2 arguments")
 	}
 
-	mode, ok := args[0].(*wire.Blob)
+	mode, ok := args[0].(*wire.String)
 
 	if !ok {
-		return wire.NewError("ARG", "Mode should be a blob, got %s", args[0].Name())
+		return wire.NewError("ARG", "Mode should be a string, got %s", args[0].Name())
 	}
 
-	pathBlob, ok := args[1].(*wire.Blob)
+	rawPath, ok := args[1].(*wire.String)
 
 	if !ok {
-		return wire.NewError("ARG", "Path should be a blob, got %s", args[1].Name())
+		return wire.NewError("ARG", "Path should be a string, got %s", args[1].Name())
 	}
 
-	vPath := "/" + strings.TrimPrefix(string(pathBlob.Data), "/")
+	vPath := "/" + strings.TrimPrefix(rawPath.Value, "/")
 
-	if string(mode.Data) != "W" && string(mode.Data) != "R" {
-		return wire.NewError("ARG", "Unsupported mode: %s", mode.Data)
+	if mode.Value != "W" && mode.Value != "R" {
+		return wire.NewError("ARG", "Unsupported mode: %s", mode.Value)
 	}
 
-	writing := string(mode.Data) == "W"
+	writing := mode.Value == "W"
 
 	if !checkAuth(s, vPath, writing) {
 		return wire.NewError("DENIED", "Access denied")

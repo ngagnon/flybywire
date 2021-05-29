@@ -19,10 +19,7 @@ module TestSuite
         session.cmd!('ADDUSER', 'example', 'supersecret')
         session.close
 
-        @@server.kill
-        @@server = Server.new $dir
-
-        @@admin= Session.new
+        @@admin = Session.new
         @@admin.cmd!('AUTH', 'PWD', 'example', 'supersecret')
 
         @@unauth = Session.new

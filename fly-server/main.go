@@ -74,7 +74,7 @@ func main() {
 }
 
 func dispatchCommand(cmd *wire.Array, session *session.S) (response wire.Value) {
-	cmdName := string(cmd.Values[0].(*wire.Blob).Data)
+	cmdName := cmd.Values[0].(*wire.String).Value
 	handler, ok := getCommandHandler(cmdName)
 
 	if !ok {

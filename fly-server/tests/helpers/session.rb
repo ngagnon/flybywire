@@ -8,8 +8,7 @@ class SessionIO
             if s.respond_to?(:put)
                 s.put(@s)
             else
-                @s.puts "$#{s.length}\n"
-                @s.puts "#{s}\n"
+                @s.puts "+#{s}\n"
             end
         end
     end

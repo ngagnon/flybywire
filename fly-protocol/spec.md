@@ -6,6 +6,22 @@ String
 
 +Lorem ipsum sit dolor amet<LF>
 
+Map
+---
+
+%2<LF>
++First key<LF>
++First value<LF>
++Second key<LF>
++Second value<LF>
+
+Array
+---
+
+*2<LF>
++First element<LF>
++Second element<LF>
+
 Error
 ---
 
@@ -20,10 +36,29 @@ Then the raw binary data, followed by a final line feed.
 $5<LF>
 hello<LF>
 
+Boolean
+---
+
+#t<LF>
+#f<LF>
+
+Integer
+---
+
+:42<LF>
+
 Null
 ---
 
 _<LF>
+
+Tag
+---
+
+Annotates another value.
+
+@22<LF>
++Some other value
 
 Connection Management
 ===
@@ -31,13 +66,18 @@ Connection Management
 AUTH
 ---
 
-Usage: AUTH PWD username password
+Arguments: 
 
-Authenticate with username & password.
+With password authentication
 
-Usage: AUTH TOK token
+- PWD (string)
+- Username (string)
+- Password (string)
 
-Authenticate with a token.
+With token authentication
+
+- TOK (string)
+- Token (string)
 
 Response:
 
@@ -53,7 +93,7 @@ When already authenticated, returns a token valid for 5 minutes that the client 
 
 Response:
 
-Blob with the token in it
+Authentication token (string)
 
 PING
 ---
@@ -64,23 +104,25 @@ Pings the server (could be useful for keepalive).
 
 Response:
 
-+PONG<LF>
+PONG (string)
 
 QUIT
 ---
 
 Usage: QUIT
 
-Terminated the connection.
+Terminates the connection.
 
 Response:
 
-+OK
+OK (string)
 
 GETOPT
 ---
 
-Usage: GETOPT key
+Arguments: 
+
+- Key (string)
 
 Gets a server option. Currently available options:
 
@@ -90,7 +132,10 @@ Gets a server option. Currently available options:
 SETOPT
 ---
 
-Usage: SETOPT key value
+Arguments: 
+
+- Key (string)
+- Value (type depends on the key)
 
 Sets a server option. Currently available options:
 
@@ -109,10 +154,17 @@ file size, and last modified time.
 
 Supports wildcards: * and **.
 
+Returns:
+
+TODO
+
 STREAM
 ---
 
-Usage: STREAM R/W path
+Arguments:
+
+- R for reading, W for writing (string)
+- Path (string)
 
 Opens the given file for reading (R) or writing (W) 
 
@@ -172,13 +224,17 @@ last chunk to indicate that all the blocks were sent.
 CLOSE
 ---
 
-Usage:
+Arguments:
 
-CLOSE streamID
+- Stream ID (integer)
 
 Closes the given stream ID.
 
 Use this command when you wish to close a writing stream.
+
+Returns:
+
+OK (string)
 
 MOVE
 ---
@@ -204,9 +260,15 @@ Deletes a file (or folder).
 MKDIR
 ---
 
-Usage: MKDIR path
+Arguments: 
+
+- Path (string)
 
 Creates a new folder.
+
+Returns:
+
+OK (string)
 
 TOUCH
 ---
@@ -246,12 +308,18 @@ Usage: LISTUSER
 
 Lists all the users.
 
+Response:
+
+List of usernames (array of strings)
+
 SHOWUSER
 ---
 
-Usage: SHOWUSER name
-
 Shows extra information about the user (whether he's admin, what's the chroot)
+
+Arguments: 
+
+- Username (string)
 
 Response:
 
@@ -266,37 +334,51 @@ _<LF>
 ADDUSER
 ---
 
-Usage: ADDUSER name
-
 Creates a new user.
+
+Arguments: 
+
+- Username (string)
+- Password (string)
 
 RMUSER
 ---
 
-Usage: RMUSER name
-
 Deletes a user.
+
+Arguments: 
+
+- Username (string)
 
 SETPWD
 ---
 
-Usage: SETPWD user password
-
 Resets a user's password.
+
+Arguments: 
+
+- Username (string)
+- Password (string)
 
 SETADM
 ---
 
-Usage: SETADM user #t/#f
-
 Sets the administrator bit on the given user (has all permissions).
+
+Arguments:
+
+- Username (string)
+- Administrator? (boolean)
 
 CHROOT
 ---
 
-Usage: CHROOT user path
-
 Sets a chroot for a user. If path is NULL, then the user isn't chroot'ed.
+
+Arguments:
+
+- Username (string)
+- Path (string or null)
 
 Access Control
 ===

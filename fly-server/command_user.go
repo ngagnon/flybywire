@@ -38,31 +38,31 @@ func handleAddUser(args []wire.Value, s *session.S) wire.Value {
 		return wire.NewError("DENIED", "You are not allowed to manage users")
 	}
 
-	username, ok := args[0].(*wire.Blob)
+	username, ok := args[0].(*wire.String)
 
 	if !ok {
-		return wire.NewError("ARG", "Username should be a blob, got %s", args[0].Name())
+		return wire.NewError("ARG", "Username should be a string, got %s", args[0].Name())
 	}
 
-	password, ok := args[1].(*wire.Blob)
+	password, ok := args[1].(*wire.String)
 
 	if !ok {
-		return wire.NewError("ARG", "Password should be a blob, got %s", args[1].Name())
+		return wire.NewError("ARG", "Password should be a string, got %s", args[1].Name())
 	}
 
-	if len(username.Data) < 1 {
+	if len(username.Value) < 1 {
 		return wire.NewError("ARG", "Minimum username length is 1")
 	}
 
-	if len(username.Data) > 32 {
+	if len(username.Value) > 32 {
 		return wire.NewError("ARG", "Maximum username length is 32")
 	}
 
-	if matched, err := regexp.Match("^[a-z_]([a-z0-9_-]{0,31})$", username.Data); !matched || err != nil {
+	if matched, err := regexp.Match("^[a-z_]([a-z0-9_-]{0,31})$", []byte(username.Value)); !matched || err != nil {
 		return wire.NewError("ARG", "Invalid username")
 	}
 
-	hash, err := bcrypt.GenerateFromPassword(password.Data, 12)
+	hash, err := bcrypt.GenerateFromPassword([]byte(password.Value), 12)
 
 	if err != nil {
 		log.Errorf("Unexpected error while generating hash: %v", err)
@@ -75,7 +75,7 @@ func handleAddUser(args []wire.Value, s *session.S) wire.Value {
 	singleUser := tx.NumUsers() == 0
 
 	newUser := &db.User{
-		Username: string(username.Data),
+		Username: username.Value,
 		Password: hash,
 		Chroot:   "",
 		Admin:    singleUser,
@@ -111,14 +111,14 @@ func handleShowUser(args []wire.Value, s *session.S) wire.Value {
 		return wire.NewError("DENIED", "You are not allowed to manage users.")
 	}
 
-	username, ok := args[0].(*wire.Blob)
+	username, ok := args[0].(*wire.String)
 
 	if !ok {
-		return wire.NewError("ARG", "Username should be a blob, got %s", args[0].Name())
+		return wire.NewError("ARG", "Username should be a string, got %s", args[0].Name())
 	}
 
 	tx := flydb.RTxn()
-	user, ok := tx.FindUser(string(username.Data))
+	user, ok := tx.FindUser(username.Value)
 	tx.Complete()
 
 	if !ok {
@@ -142,14 +142,14 @@ func handleRmuser(args []wire.Value, s *session.S) wire.Value {
 		return wire.NewError("DENIED", "You are not allowed to manage users.")
 	}
 
-	username, ok := args[0].(*wire.Blob)
+	username, ok := args[0].(*wire.String)
 
 	if !ok {
-		return wire.NewError("ARG", "Username should be a blob, got %s", args[0].Name())
+		return wire.NewError("ARG", "Username should be a string, got %s", args[0].Name())
 	}
 
 	tx := flydb.Txn()
-	err := tx.DeleteUser(string(username.Data))
+	err := tx.DeleteUser(username.Value)
 	tx.Complete()
 
 	if errors.Is(err, db.ErrNotFound) {

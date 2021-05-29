@@ -11,37 +11,37 @@ func handleAuth(args []wire.Value, s *session.S) wire.Value {
 		return wire.NewError("ARG", "Command AUTH expects at least 1 argument")
 	}
 
-	authType, ok := args[0].(*wire.Blob)
+	authType, ok := args[0].(*wire.String)
 
 	if !ok {
-		return wire.NewError("ARG", "AUTH type should be a blob, got %s", args[0].Name())
+		return wire.NewError("ARG", "AUTH type should be a string, got %s", args[0].Name())
 	}
 
-	if string(authType.Data) != "PWD" {
-		return wire.NewError("ARG", "Unsupported AUTH type: %s", authType.Data)
+	if authType.Value != "PWD" {
+		return wire.NewError("ARG", "Unsupported AUTH type: %s", authType.Value)
 	}
 
 	if len(args) != 3 {
 		return wire.NewError("ARG", "Password authentication requires a username and a password")
 	}
 
-	username, ok := args[1].(*wire.Blob)
+	username, ok := args[1].(*wire.String)
 
 	if !ok {
-		return wire.NewError("ARG", "Username should be a blob, got %s", args[1].Name())
+		return wire.NewError("ARG", "Username should be a string, got %s", args[1].Name())
 	}
 
-	password, ok := args[2].(*wire.Blob)
+	password, ok := args[2].(*wire.String)
 
 	if !ok {
-		return wire.NewError("ARG", "Password should be a blob, got %s", args[2].Name())
+		return wire.NewError("ARG", "Password should be a string, got %s", args[2].Name())
 	}
 
-	if !verifyPassword(string(username.Data), string(password.Data)) {
+	if !verifyPassword(username.Value, password.Value) {
 		return wire.NewError("DENIED", "Authentication failed")
 	}
 
-	s.SetUser(string(username.Data))
+	s.SetUser(username.Value)
 	return wire.OK
 }
 

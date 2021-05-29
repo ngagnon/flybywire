@@ -30,7 +30,7 @@ type Bool struct {
 }
 
 type String struct {
-	val string
+	Value string
 }
 
 type Blob struct {
@@ -55,7 +55,7 @@ type Frame struct {
 	Payload  Value
 }
 
-var OK = &String{val: "OK"}
+var OK = &String{Value: "OK"}
 var Null = &null{}
 var ErrFormat = errors.New("Protocol error")
 var ErrIO = errors.New("I/O error")
@@ -103,7 +103,7 @@ func validateCommand(arr *Array) error {
 		return fmt.Errorf("%w: unexpected empty array", ErrFormat)
 	}
 
-	if _, ok := arr.Values[0].(*Blob); !ok {
+	if _, ok := arr.Values[0].(*String); !ok {
 		return fmt.Errorf("%w: command name not a string, got %s instead", ErrFormat, arr.Values[0].Name())
 	}
 
@@ -129,6 +129,18 @@ func readValue(r *bufio.Reader, canBeStream bool) (Value, error) {
 		}
 
 		return Null, nil
+	}
+
+	if b == '+' {
+		buf, err := r.ReadBytes('\n')
+
+		if err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrIO, err)
+		}
+
+		buf = buf[:len(buf)-1]
+
+		return NewString(string(buf)), nil
 	}
 
 	if b == '>' || b == '*' || b == '$' || b == ':' {
@@ -253,7 +265,7 @@ func NewError(code string, format string, v ...interface{}) *Error {
 }
 
 func NewString(val string) *String {
-	return &String{val: val}
+	return &String{Value: val}
 }
 
 func NewBlob(data []byte) *Blob {
@@ -292,7 +304,7 @@ func (b *Bool) WriteTo(w io.Writer) error {
 }
 
 func (s *String) WriteTo(w io.Writer) (err error) {
-	_, err = fmt.Fprintf(w, "+%s\n", s.val)
+	_, err = fmt.Fprintf(w, "+%s\n", s.Value)
 	return
 }
 
@@ -341,7 +353,7 @@ func (m *Map) WriteTo(w io.Writer) error {
 	fmt.Fprintf(buf, "%%%d\n", len(m.m))
 
 	for k, v := range m.m {
-		ks := String{val: k}
+		ks := String{Value: k}
 		ks.WriteTo(buf)
 		v.WriteTo(buf)
 	}
