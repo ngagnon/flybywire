@@ -14,6 +14,8 @@ module TestSuite
     def self.setup()
         @@commands = []
 
+        check_connection(6767)
+
         $dir = Dir.mktmpdir 'fly'
         @@server = Server.new $dir
 
@@ -25,6 +27,20 @@ module TestSuite
         @@admin.cmd!('AUTH', 'PWD', 'example', 'supersecret')
 
         @@unauth = Session.new
+    end
+
+    def self.check_connection(port)
+        connected = true
+
+        begin
+            @s = TCPSocket.new('localhost', port)
+        rescue
+            connected = false
+        end
+
+        if connected
+            raise "A fly server is already running on port #{port}"
+        end
     end
 
     def self.get_command(name)

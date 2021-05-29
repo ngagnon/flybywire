@@ -1,8 +1,4 @@
-- To test for command case sensitivity: second time cmd() is called on a command,
-  mix up the case. Then, in after(:suite), make sure all commands
-  were called with mixed casing!
 - Perhaps change >X to @X, call them tags? And make wire unaware of command frames, streams and such?. Wire shouldn't do any validation of the command array.
-- Check if the port is already in use before starting server
 - Put commands in a separate package
 - Race condition with the CLOSE tests sometimes?
 - .fly folder should be hidden from commands!! (vfs should take care of this. write test)
