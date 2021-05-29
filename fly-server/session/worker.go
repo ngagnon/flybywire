@@ -1,6 +1,10 @@
 package session
 
-import "github.com/ngagnon/fly-server/wire"
+import (
+	"strings"
+
+	"github.com/ngagnon/fly-server/wire"
+)
 
 func runCommands(cb CommandHandler, s *S) {
 	s.waitGroup.Add(1)
@@ -19,7 +23,7 @@ func runCommands(cb CommandHandler, s *S) {
 		case arr := <-s.commands:
 			if arr.Values[0] == outMarker {
 				s.out <- arr.Values[1]
-			} else if arr.Values[0].(*wire.String).Value == "QUIT" {
+			} else if commandIsQuit(arr.Values[0]) {
 				s.out <- wire.OK
 				close(s.out)
 				return
@@ -29,4 +33,8 @@ func runCommands(cb CommandHandler, s *S) {
 			}
 		}
 	}
+}
+
+func commandIsQuit(val wire.Value) bool {
+	return strings.ToUpper(val.(*wire.String).Value) == "QUIT"
 }

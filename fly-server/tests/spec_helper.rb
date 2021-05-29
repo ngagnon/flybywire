@@ -12,6 +12,8 @@ require_relative 'helpers/username'
 # @TODO: regularUser not setup
 module TestSuite
     def self.setup()
+        @@commands = []
+
         $dir = Dir.mktmpdir 'fly'
         @@server = Server.new $dir
 
@@ -25,11 +27,29 @@ module TestSuite
         @@unauth = Session.new
     end
 
+    def self.get_command(name)
+        if @@commands.include? name
+            name = name.downcase
+        end
+
+        @@commands.push(name)
+        name
+    end
+
     def self.teardown()
         @@admin.close
         @@unauth.close
         @@server.kill
         FileUtils.rm_rf $dir
+
+        normalCase = @@commands.select { |x| x == x.upcase }
+        normalCase.each do |cmd|
+            hasAltCase = @@commands.any? { |x| x.upcase == cmd && x != cmd }
+
+            if !hasAltCase
+                raise "Command #{cmd} was only called in uppercase."
+            end
+        end
     end
 
     def admin()

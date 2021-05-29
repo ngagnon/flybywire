@@ -30,5 +30,11 @@ RSpec.describe 'CLOSE' do
         expect(File.exists? fname).to be false
     end
 
-    # @TODO: test with invalid stream ID
+    context 'invalid stream ID' do
+        it 'returns an error' do
+            resp = admin.cmd('CLOSE', 100000)
+            expect(resp).to be_a(Wire::Error)
+            expect(resp.code).to eq('ARG')
+        end
+    end
 end

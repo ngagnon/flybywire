@@ -67,6 +67,7 @@ class Session < SessionIO
     end
 
     def cmd(name, *items)
+        name = TestSuite.get_command(name)
         arr = Wire::Array.new([name].concat(items))
         arr.put(@s)
 

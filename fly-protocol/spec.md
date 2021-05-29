@@ -60,6 +60,16 @@ Annotates another value.
 @22<LF>
 +Some other value
 
+Protocol
+===
+
+The protocol is request-response.
+
+The client starts by sending an array, where the first element is a string
+representing the command name (case insensitive).
+
+Then, the server will respond with some value, depending on the command.
+
 Connection Management
 ===
 

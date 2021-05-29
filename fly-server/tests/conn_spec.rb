@@ -15,12 +15,6 @@ RSpec.describe 'Connection' do
                 expect(resp.value).to eq('PONG')
             end
         end
-
-        it 'is case insensitive' do
-            resp = unauth.cmd('pinG')
-            expect(resp).to be_a(Wire::String)
-            expect(resp.value).to eq('PONG')
-        end
     end
 
     describe 'QUIT' do
