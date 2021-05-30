@@ -1,5 +1,6 @@
-- Race condition with the CLOSE tests sometimes?
+- Refactor reader
 - .fly folder should be hidden from commands!! (vfs should take care of this. write test)
+- Add regularUser, singleUser personas to spec_helper
 - Continue working on more commands
     - SETPWD
     - SETADM
