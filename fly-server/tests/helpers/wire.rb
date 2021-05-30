@@ -190,8 +190,8 @@ module Wire
             end
 
             return Map.new(map)
-        elsif line.start_with? '>'
-            line.delete_prefix!(">")
+        elsif line.start_with? '@'
+            line.delete_prefix!("@")
             stream_id = line.to_i
             payload = get_next(s)
 

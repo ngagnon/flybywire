@@ -1,5 +1,3 @@
-- Perhaps change >X to @X, call them tags? And make wire unaware of command frames, streams and such?. Wire shouldn't do any validation of the command array.
-- Put commands in a separate package
 - Race condition with the CLOSE tests sometimes?
 - .fly folder should be hidden from commands!! (vfs should take care of this. write test)
 - Continue working on more commands

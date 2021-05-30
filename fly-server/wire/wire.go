@@ -14,8 +14,8 @@ type Value interface {
 	Name() string
 }
 
-type StreamFrame struct {
-	id    int
+type TaggedValue struct {
+	Tag   string
 	Value Value
 }
 
@@ -50,67 +50,17 @@ type Map struct {
 	m map[string]Value
 }
 
-type Frame struct {
-	StreamId *int
-	Payload  Value
-}
-
 var OK = &String{Value: "OK"}
 var Null = &null{}
 var ErrFormat = errors.New("Protocol error")
 var ErrIO = errors.New("I/O error")
 
-func ReadFrame(r *bufio.Reader) (Frame, error) {
-	val, err := readValue(r, true)
-
-	if err != nil {
-		return Frame{}, err
-	}
-
-	if stream, ok := val.(*StreamFrame); ok {
-		return readStreamFrame(stream, r)
-	}
-
-	if cmd, ok := val.(*Array); ok {
-		return readCommandFrame(cmd)
-	}
-
-	return Frame{}, fmt.Errorf("%w: unexpected %s", ErrFormat, val.Name())
+func ReadValue(r *bufio.Reader) (Value, error) {
+	return readValue(r, true)
 }
 
-func readStreamFrame(frame *StreamFrame, r *bufio.Reader) (Frame, error) {
-	payload := frame.Value
-	_, isBlob := payload.(*Blob)
-
-	if !isBlob && payload != Null {
-		err := fmt.Errorf("%w: invalid stream frame, unexpected %s", ErrFormat, payload.Name())
-		return Frame{}, err
-	}
-
-	return Frame{StreamId: &frame.id, Payload: payload}, nil
-}
-
-func readCommandFrame(cmd *Array) (Frame, error) {
-	if err := validateCommand(cmd); err != nil {
-		return Frame{}, err
-	}
-
-	return Frame{Payload: cmd}, nil
-}
-
-func validateCommand(arr *Array) error {
-	if len(arr.Values) == 0 {
-		return fmt.Errorf("%w: unexpected empty array", ErrFormat)
-	}
-
-	if _, ok := arr.Values[0].(*String); !ok {
-		return fmt.Errorf("%w: command name not a string, got %s instead", ErrFormat, arr.Values[0].Name())
-	}
-
-	return nil
-}
-
-func readValue(r *bufio.Reader, canBeStream bool) (Value, error) {
+// @TODO: refactor
+func readValue(r *bufio.Reader, canBeTag bool) (Value, error) {
 	b, err := r.ReadByte()
 
 	if err != nil {
@@ -143,7 +93,28 @@ func readValue(r *bufio.Reader, canBeStream bool) (Value, error) {
 		return NewString(string(buf)), nil
 	}
 
-	if b == '>' || b == '*' || b == '$' || b == ':' {
+	if b == '@' {
+		if !canBeTag {
+			return nil, fmt.Errorf("%w: unexpected tag", ErrFormat)
+		}
+
+		buf, err := r.ReadBytes('\n')
+
+		if err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrIO, err)
+		}
+
+		buf = buf[:len(buf)-1]
+		val, err := readValue(r, false)
+
+		if err != nil {
+			return nil, err
+		}
+
+		return NewTaggedValue(val, string(buf)), nil
+	}
+
+	if b == '*' || b == '$' || b == ':' {
 		size, err := readSize(r)
 
 		if err != nil {
@@ -151,12 +122,6 @@ func readValue(r *bufio.Reader, canBeStream bool) (Value, error) {
 		}
 
 		switch b {
-		case '>':
-			if !canBeStream {
-				return nil, fmt.Errorf("%w: unexpected stream header", ErrFormat)
-			}
-
-			return handleStreamFrame(size, r)
 		case '*':
 			return handleArray(r, size)
 		case '$':
@@ -167,16 +132,6 @@ func readValue(r *bufio.Reader, canBeStream bool) (Value, error) {
 	}
 
 	return nil, fmt.Errorf("%w: unexpected symbol %c", ErrFormat, rune(b))
-}
-
-func handleStreamFrame(id int, r *bufio.Reader) (*StreamFrame, error) {
-	val, err := readValue(r, false)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return NewStreamFrame(id, val), nil
 }
 
 func handleArray(r *bufio.Reader, len int) (*Array, error) {
@@ -288,8 +243,8 @@ func NewArray(a []Value) *Array {
 	return &Array{Values: a}
 }
 
-func NewStreamFrame(id int, val Value) *StreamFrame {
-	return &StreamFrame{id: id, Value: val}
+func NewTaggedValue(val Value, tag string) *TaggedValue {
+	return &TaggedValue{Tag: tag, Value: val}
 }
 
 func (b *Bool) WriteTo(w io.Writer) error {
@@ -318,9 +273,9 @@ func (i *Integer) WriteTo(w io.Writer) (err error) {
 	return
 }
 
-func (f *StreamFrame) WriteTo(w io.Writer) (err error) {
+func (f *TaggedValue) WriteTo(w io.Writer) (err error) {
 	buf := new(bytes.Buffer)
-	fmt.Fprintf(buf, ">%d\n", f.id)
+	fmt.Fprintf(buf, "@%s\n", f.Tag)
 	f.Value.WriteTo(buf)
 	_, err = buf.WriteTo(w)
 	return
@@ -362,8 +317,8 @@ func (m *Map) WriteTo(w io.Writer) error {
 	return err
 }
 
-func (h *StreamFrame) Name() string {
-	return "stream frame"
+func (h *TaggedValue) Name() string {
+	return "tagged value"
 }
 
 func (n *null) Name() string {

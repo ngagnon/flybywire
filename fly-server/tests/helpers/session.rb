@@ -14,7 +14,7 @@ class SessionIO
     end
 
     def put_stream(id)
-        @s.puts ">#{id}\n"
+        @s.puts "@#{id}\n"
     end
 
     def put_null()
