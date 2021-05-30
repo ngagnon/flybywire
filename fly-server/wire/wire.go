@@ -59,7 +59,6 @@ func ReadValue(r *bufio.Reader) (Value, error) {
 	return readValue(r, true)
 }
 
-// @TODO: refactor
 func readValue(r *bufio.Reader, canBeTag bool) (Value, error) {
 	b, err := r.ReadByte()
 
@@ -67,54 +66,18 @@ func readValue(r *bufio.Reader, canBeTag bool) (Value, error) {
 		return nil, fmt.Errorf("%w: %v", ErrIO, err)
 	}
 
-	if b == '_' {
-		b, err := r.ReadByte()
-
-		if err != nil {
-			return nil, fmt.Errorf("%w: %v", ErrIO, err)
-		}
-
-		if b != '\n' {
-			return nil, fmt.Errorf("%w: unexpected symbol %c, was expecting new line", ErrFormat, rune(b))
-		}
-
-		return Null, nil
-	}
-
-	if b == '+' {
-		buf, err := r.ReadBytes('\n')
-
-		if err != nil {
-			return nil, fmt.Errorf("%w: %v", ErrIO, err)
-		}
-
-		buf = buf[:len(buf)-1]
-
-		return NewString(string(buf)), nil
-	}
-
-	if b == '@' {
-		if !canBeTag {
-			return nil, fmt.Errorf("%w: unexpected tag", ErrFormat)
-		}
-
-		buf, err := r.ReadBytes('\n')
-
-		if err != nil {
-			return nil, fmt.Errorf("%w: %v", ErrIO, err)
-		}
-
-		buf = buf[:len(buf)-1]
-		val, err := readValue(r, false)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return NewTaggedValue(val, string(buf)), nil
-	}
-
-	if b == '*' || b == '$' || b == ':' {
+	switch b {
+	case '_':
+		return handleNull(r)
+	case '+':
+		return handleString(r)
+	case '@':
+		return handleTag(r, canBeTag)
+	case '*':
+		fallthrough
+	case '$':
+		fallthrough
+	case ':':
 		size, err := readSize(r)
 
 		if err != nil {
@@ -132,6 +95,53 @@ func readValue(r *bufio.Reader, canBeTag bool) (Value, error) {
 	}
 
 	return nil, fmt.Errorf("%w: unexpected symbol %c", ErrFormat, rune(b))
+}
+
+func handleNull(r *bufio.Reader) (Value, error) {
+	b, err := r.ReadByte()
+
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrIO, err)
+	}
+
+	if b != '\n' {
+		return nil, fmt.Errorf("%w: unexpected symbol %c, was expecting new line", ErrFormat, rune(b))
+	}
+
+	return Null, nil
+}
+
+func handleString(r *bufio.Reader) (Value, error) {
+	buf, err := r.ReadBytes('\n')
+
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrIO, err)
+	}
+
+	buf = buf[:len(buf)-1]
+
+	return NewString(string(buf)), nil
+}
+
+func handleTag(r *bufio.Reader, canBeTag bool) (Value, error) {
+	if !canBeTag {
+		return nil, fmt.Errorf("%w: unexpected tag", ErrFormat)
+	}
+
+	buf, err := r.ReadBytes('\n')
+
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrIO, err)
+	}
+
+	buf = buf[:len(buf)-1]
+	val, err := readValue(r, false)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return NewTaggedValue(val, string(buf)), nil
 }
 
 func handleArray(r *bufio.Reader, len int) (*Array, error) {
