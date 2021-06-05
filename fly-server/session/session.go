@@ -15,7 +15,6 @@ type S struct {
 	commands   chan *wire.Array
 	streams    [16]stream
 	streamLock sync.RWMutex
-	userLock   sync.RWMutex
 	user       string
 }
 
@@ -41,13 +40,9 @@ func Handle(conn net.Conn, cb CommandHandler) {
 }
 
 func (s *S) CurrentUser() string {
-	s.userLock.RLock()
-	defer s.userLock.RUnlock()
 	return s.user
 }
 
 func (s *S) SetUser(user string) {
-	s.userLock.Lock()
 	s.user = user
-	s.userLock.Unlock()
 }
