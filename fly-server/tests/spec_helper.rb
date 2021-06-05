@@ -9,12 +9,16 @@ require_relative 'helpers/session'
 require_relative 'helpers/wire'
 require_relative 'helpers/username'
 
-# @TODO: regularUser not setup
 module TestSuite
     def self.setup()
         @@commands = []
 
         check_connection(6767)
+        check_connection(6701)
+
+        @@singleUserDir = Dir.mktmpdir 'fly'
+        @@singleUserServer = Server.new(@@singleUserDir, 6701)
+        @@singleUser = Session.new(6701)
 
         $dir = Dir.mktmpdir 'fly'
         @@server = Server.new $dir
@@ -25,6 +29,10 @@ module TestSuite
 
         @@admin = Session.new
         @@admin.cmd!('AUTH', 'PWD', 'example', 'supersecret')
+        @@admin.cmd!('ADDUSER', 'joe', 'regularguy')
+
+        @@regularUser = Session.new
+        @@regularUser.cmd!('AUTH', 'PWD', 'joe', 'regularguy')
 
         @@unauth = Session.new
     end
@@ -54,9 +62,15 @@ module TestSuite
 
     def self.teardown()
         @@admin.close
+        @@regularUser.close
         @@unauth.close
+        @@singleUser.close
+
         @@server.kill
         FileUtils.rm_rf $dir
+
+        @@singleUserServer.kill
+        FileUtils.rm_rf @@singleUserDir
 
         normalCase = @@commands.select { |x| x == x.upcase }
         normalCase.each do |cmd|
