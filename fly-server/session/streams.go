@@ -52,7 +52,7 @@ func (s *S) NewReadStream(path string) (id int, wirErr *wire.Error) {
 	file, err := os.Open(path)
 
 	if errors.Is(err, os.ErrNotExist) {
-		return 0, wire.NewError("NOTFOUND", "File not found")
+		return 0, wire.NewError("NOTFOUND", "No such file or directory")
 	}
 
 	if err != nil {

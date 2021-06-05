@@ -25,7 +25,11 @@ func handleMkdir(args []wire.Value, s *session.S) wire.Value {
 		return wire.NewError("DENIED", "Access denied")
 	}
 
-	realPath := resolveVirtualPath(vPath)
+	realPath, ok := resolveVirtualPath(vPath)
+
+	if !ok {
+		return wire.NewError("NOTFOUND", "No such file or directory")
+	}
 
 	if err := os.MkdirAll(realPath, 0755); err != nil {
 		// @TODO: debug log
@@ -64,7 +68,11 @@ func handleStream(args []wire.Value, s *session.S) wire.Value {
 		return wire.NewError("DENIED", "Access denied")
 	}
 
-	realPath := resolveVirtualPath(vPath)
+	realPath, ok := resolveVirtualPath(vPath)
+
+	if !ok {
+		return wire.NewError("NOTFOUND", "No such file or directory")
+	}
 
 	if writing {
 		id, err := s.NewWriteStream(realPath)

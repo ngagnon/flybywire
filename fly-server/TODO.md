@@ -1,5 +1,3 @@
-- Refactor reader
-- .fly folder should be hidden from commands!! (vfs should take care of this. write test)
 - Add regularUser, singleUser personas to spec_helper
 - Continue working on more commands
     - SETPWD
@@ -12,11 +10,11 @@
     - MOVE
     - COPY => could be slow operation if recursive
     - TOUCH
-    - SYNC
     - LISTACP
     - ADDACP
     - MODACP
     - RMACP
+    - SYNC
 - Ruby tests shouldn't test things with the local disk. Should just use the protocol itself
 - To get the server out of single-user mode, we should use AUTH instead of ADDUSER, would make things less confusing
 - Verify integrity of the databases when reading from them

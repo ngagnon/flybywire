@@ -104,6 +104,12 @@ RSpec.describe 'STREAM' do
                 expect(resp).to be_a(Wire::Error)
                 expect(resp.code).to eq('NOTFOUND')
             end
+
+            it 'returns NOTFOUND for internal files' do
+                resp = admin.cmd('STREAM', 'R', '.fly/users.csv')
+                expect(resp).to be_a(Wire::Error)
+                expect(resp.code).to eq('NOTFOUND')
+            end
         end
     end
 end
