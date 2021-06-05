@@ -144,6 +144,20 @@ func (tx *Txn) AddUser(u *User) error {
 	return tx.db.err
 }
 
+func (tx *Txn) UpdateUser(username string, f func(u *User)) error {
+	user, ok := tx.db.users[username]
+
+	if !ok {
+		return fmt.Errorf("user %w: %s", ErrNotFound, username)
+	}
+
+	f(&user)
+	tx.db.users[username] = user
+	tx.db.writeUsers()
+
+	return tx.db.err
+}
+
 func (tx *Txn) DeleteUser(username string) error {
 	if _, ok := tx.db.users[username]; !ok {
 		return fmt.Errorf("user %w: %s", ErrNotFound, username)

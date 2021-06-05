@@ -89,6 +89,14 @@ module TestSuite
     def unauth()
         @@unauth
     end
+
+    def regularUser()
+        @@regularUser
+    end
+
+    def singleUser()
+        @@singleUser
+    end
 end
 
 RSpec.configure do |config|
@@ -100,6 +108,12 @@ RSpec.configure do |config|
 
     config.after(:suite) do
         TestSuite.teardown
+    end
+end
+
+RSpec::Matchers.define :be_ok do
+    match do |resp|
+        (resp.is_a? Wire::String) && resp.value == 'OK'
     end
 end
 

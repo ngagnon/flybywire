@@ -1,7 +1,5 @@
 # @TODO: all user commands should return errors in single-user mode
 # @TODO: the commands shouldn't work if you're not admin (or unauth)
-# @TODO: test SETPWD
-# @TODO: SETPWD should work on yourself
 # @TODO: make sure changes are persisted after server restart? (separate test)
 
 RSpec.describe 'SHOWUSER' do
@@ -64,66 +62,6 @@ RSpec.describe 'RMUSER' do
         resp = admin.cmd('AUTH', 'PWD', @usernames[1], 'topsecret')
         expect(resp).to be_a(Wire::Error)
         expect(resp.code).to eq('DENIED')
-    end
-end
-
-RSpec.describe 'SETPWD' do
-    context 'admin' do
-        # @TODO
-    end
-
-    context 'regular user' do
-        before(:all) do
-            @username = Username.get_next
-            admin.cmd!('ADDUSER', @username, 'topsecret')
-        end
-
-        context 'self' do
-            before(:all) do
-            end
-            it 'returns OK' do
-            end
-
-            it 'updates user' do
-                # @TODO: mod user
-                # @TODO: test that it returns OK
-                # @TODO: show user again
-            end
-        end
-
-        context 'someone else' do
-            before(:all) do
-                # @TODO
-            end
-
-            it 'returns an error' do
-                # @TODO: DENIED
-            end
-        end
-    end
-=begin
-    context 'unauthenticated' do
-        before(:all) do
-            @username = Username.get_next
-            admin.cmd!('ADDUSER', @username, 'topsecret')
-            @resp = unauth.cmd('SETPWD', @username, 'newpassword')
-        end
-
-        it 'returns an error' do
-            expect(@resp).to be_a(Wire::Error)
-            expect(@resp.code).to eq('DENIED')
-        end
-
-        it 'does not change password' do
-            resp = unauth.cmd('AUTH', 'PWD', @username, 'newpassword')
-            expect(resp).to be_a(Wire::Error)
-            expect(resp.code).to eq('DENIED')
-        end
-    end
-=end
-
-    context 'single-user' do
-        # @TODO
     end
 end
 

@@ -1,5 +1,4 @@
 - Continue working on more commands
-    - SETPWD
     - SETADM
     - GETOPT/SETOP => chunk size negotiation
     - CHROOT

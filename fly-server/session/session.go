@@ -15,10 +15,9 @@ type S struct {
 	commands   chan *wire.Array
 	streams    [16]stream
 	streamLock sync.RWMutex
-	user       string
 }
 
-type CommandHandler func(cmd *wire.Array, session *S) (response wire.Value)
+type CommandHandler func(cmd *wire.Array, s *S) (response wire.Value)
 
 func Handle(conn net.Conn, cb CommandHandler) {
 	session := &S{
@@ -39,10 +38,6 @@ func Handle(conn net.Conn, cb CommandHandler) {
 	conn.Close()
 }
 
-func (s *S) CurrentUser() string {
-	return s.user
-}
-
-func (s *S) SetUser(user string) {
-	s.user = user
+func (s *S) Terminate() {
+	s.terminate <- struct{}{}
 }

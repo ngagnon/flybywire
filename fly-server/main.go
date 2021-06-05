@@ -13,7 +13,14 @@ import (
 	"github.com/ngagnon/fly-server/wire"
 )
 
-type commandHandler func(args []wire.Value, session *session.S) (response wire.Value)
+type sessionInfo struct {
+	username   string
+	user       *db.User
+	singleUser bool
+	session    *session.S
+}
+
+type commandHandler func(args []wire.Value, session *sessionInfo) (response wire.Value)
 
 var commandHandlers = map[string]commandHandler{
 	"PING":     handlePing,
@@ -22,6 +29,7 @@ var commandHandlers = map[string]commandHandler{
 	"MKDIR":    handleMkdir,
 	"LISTUSER": handleListUser,
 	"ADDUSER":  handleAddUser,
+	"SETPWD":   handleSetpwd,
 	"RMUSER":   handleRmuser,
 	"SHOWUSER": handleShowUser,
 	"STREAM":   handleStream,
@@ -69,11 +77,19 @@ func main() {
 			log.Fatalf("Accept error: %v", err)
 		}
 
-		go session.Handle(conn, dispatchCommand)
+		s := &sessionInfo{}
+
+		go session.Handle(conn, func(cmd *wire.Array, session *session.S) (response wire.Value) {
+			if s.session == nil {
+				s.session = session
+			}
+
+			return dispatchCommand(cmd, s)
+		})
 	}
 }
 
-func dispatchCommand(cmd *wire.Array, session *session.S) (response wire.Value) {
+func dispatchCommand(cmd *wire.Array, s *sessionInfo) (response wire.Value) {
 	cmdName := cmd.Values[0].(*wire.String).Value
 	handler, ok := getCommandHandler(cmdName)
 
@@ -81,8 +97,45 @@ func dispatchCommand(cmd *wire.Array, session *session.S) (response wire.Value) 
 		return wire.NewError("CMD", "Unknown command '%s'", cmdName)
 	}
 
+	s.update()
+
 	args := cmd.Values[1:]
-	return handler(args, session)
+	return handler(args, s)
+}
+
+func (s *sessionInfo) update() {
+	tx := flydb.RTxn()
+	defer tx.Complete()
+
+	s.singleUser = tx.NumUsers() == 0
+
+	if s.username == "" {
+		return
+	}
+
+	// User doesn't exist anymore
+	_, ok := tx.FindUser(s.username)
+
+	if !ok {
+		s.user = nil
+		s.username = ""
+	}
+}
+
+func (s *sessionInfo) changeUser(username string) {
+	tx := flydb.RTxn()
+	defer tx.Complete()
+
+	s.username = username
+	user, ok := tx.FindUser(s.username)
+
+	if !ok {
+		log.Errorf("Tried to change to a non-existing user: %s", username)
+		s.session.Terminate()
+		return
+	}
+
+	s.user = &user
 }
 
 func getCommandHandler(s string) (h commandHandler, ok bool) {

@@ -4,11 +4,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ngagnon/fly-server/session"
 	"github.com/ngagnon/fly-server/wire"
 )
 
-func handleMkdir(args []wire.Value, s *session.S) wire.Value {
+func handleMkdir(args []wire.Value, s *sessionInfo) wire.Value {
 	if len(args) != 1 {
 		return wire.NewError("ARG", "Command MKDIR expects exactly one argument")
 	}
@@ -39,7 +38,7 @@ func handleMkdir(args []wire.Value, s *session.S) wire.Value {
 	return wire.OK
 }
 
-func handleStream(args []wire.Value, s *session.S) wire.Value {
+func handleStream(args []wire.Value, s *sessionInfo) wire.Value {
 	if len(args) != 2 {
 		return wire.NewError("ARG", "Command STREAM expects exactly 2 arguments")
 	}
@@ -75,7 +74,7 @@ func handleStream(args []wire.Value, s *session.S) wire.Value {
 	}
 
 	if writing {
-		id, err := s.NewWriteStream(realPath)
+		id, err := s.session.NewWriteStream(realPath)
 
 		if err != nil {
 			return err
@@ -83,7 +82,7 @@ func handleStream(args []wire.Value, s *session.S) wire.Value {
 
 		return wire.NewInteger(id)
 	} else {
-		id, err := s.NewReadStream(realPath)
+		id, err := s.session.NewReadStream(realPath)
 
 		if err != nil {
 			return err
