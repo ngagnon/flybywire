@@ -117,6 +117,12 @@ RSpec::Matchers.define :be_ok do
     end
 end
 
+RSpec::Matchers.define :be_error do |code|
+    match do |resp|
+        (resp.is_a? Wire::Error) && resp.code == code
+    end
+end
+
 TestProf.configure do |config|
     # the directory to put artifacts (reports) in ('tmp/test_prof' by default)
     config.output_dir = "./test_prof"

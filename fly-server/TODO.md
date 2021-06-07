@@ -1,5 +1,4 @@
 - Continue working on more commands
-    - SETADM
     - GETOPT/SETOP => chunk size negotiation
     - CHROOT
     - DEL
@@ -13,9 +12,8 @@
     - MODACP
     - RMACP
     - SYNC
+- Refactor commands & specs to have one file per command
 - Ruby tests shouldn't test things with the local disk. Should just use the protocol itself
-- To get the server out of single-user mode, we should use AUTH instead of ADDUSER, would make things less confusing
 - Verify integrity of the databases when reading from them
-- Each command should have a unit test to make sure it calls checkAuth, and to make sure it returns -DENIED when checkAuth returned false (use bytes.Buffer?)
 - Allow for a custom config path (instead of .fly)
 - Should allow you to pass a single file instead of a dir (for quickly sharing a file)

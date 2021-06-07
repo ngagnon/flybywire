@@ -42,6 +42,8 @@ module Wire
                     String.new(elem).put(s)
                 elsif elem.is_a? ::Integer
                     Integer.new(elem).put(s)
+                elsif !!elem == elem
+                    Boolean.new(elem).put(s)
                 else
                     elem.put(s)
                 end

@@ -69,6 +69,8 @@ func readValue(r *bufio.Reader, canBeTag bool) (Value, error) {
 	switch b {
 	case '_':
 		return handleNull(r)
+	case '#':
+		return handleBoolean(r)
 	case '+':
 		return handleString(r)
 	case '@':
@@ -109,6 +111,30 @@ func handleNull(r *bufio.Reader) (Value, error) {
 	}
 
 	return Null, nil
+}
+
+func handleBoolean(r *bufio.Reader) (Value, error) {
+	sym, err := r.ReadByte()
+
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrIO, err)
+	}
+
+	if sym != 't' && sym != 'f' {
+		return nil, fmt.Errorf("%w: unexpected symbol %c, was expecting t or f after #", ErrFormat, rune(sym))
+	}
+
+	b, err := r.ReadByte()
+
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrIO, err)
+	}
+
+	if b != '\n' {
+		return nil, fmt.Errorf("%w: unexpected symbol %c, was expecting new line", ErrFormat, rune(b))
+	}
+
+	return NewBoolean(sym == 't'), nil
 }
 
 func handleString(r *bufio.Reader) (Value, error) {
