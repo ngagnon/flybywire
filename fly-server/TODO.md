@@ -1,12 +1,14 @@
 - Continue working on more commands
-    - GETOPT/SETOP => chunk size negotiation
+    - LIST
+    - TOUCH
+    - GETOPT/SETOPT 
+        * chunk size negotiation
+        * windows names (https://stackoverflow.com/questions/1976007/what-characters-are-forbidden-in-windows-and-linux-directory-names, case insensitive)
     - CHROOT
     - DEL
     - AUTH TOK / TOKEN
-    - LIST
     - MOVE
     - COPY => could be slow operation if recursive
-    - TOUCH
     - LISTACP
     - ADDACP
     - MODACP

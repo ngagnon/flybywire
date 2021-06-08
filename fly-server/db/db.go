@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -27,19 +28,19 @@ const (
 	Write  access = 'W'
 )
 
-type acp struct {
-	name       string
-	users      []string
-	paths      []string
-	fileAccess access
-	acpAccess  access
+type Policy struct {
+	Name       string
+	Users      []string
+	Paths      []string
+	FileAccess access
+	AcpAccess  access
 }
 
 type Handle struct {
 	dir      string
 	err      error
 	users    map[string]User
-	policies []acp
+	policies []Policy
 	lock     sync.RWMutex
 }
 
@@ -57,7 +58,7 @@ func Open(dir string) (*Handle, error) {
 	db := &Handle{
 		dir:      dir,
 		users:    make(map[string]User, 0),
-		policies: make([]acp, 0),
+		policies: make([]Policy, 0),
 	}
 
 	found, err := readVersionFile(dir)
@@ -68,7 +69,7 @@ func Open(dir string) (*Handle, error) {
 
 	if found {
 		db.readUsers()
-		db.readAccessRules()
+		db.readAccessPolicies()
 	} else {
 		dbFolder := path.Join(dir, ".fly")
 
@@ -78,7 +79,7 @@ func Open(dir string) (*Handle, error) {
 
 		db.writeVersionFile()
 		db.writeUsers()
-		db.writeAccessRules()
+		db.writeAccessPolicies()
 	}
 
 	if db.err != nil {
@@ -142,6 +143,23 @@ func (tx *Txn) AddUser(u *User) error {
 	tx.db.writeUsers()
 
 	return tx.db.err
+}
+
+func (tx *Txn) AddAccessPolicy(p *Policy) error {
+	tx.db.policies = append(tx.db.policies, *p)
+	tx.db.writeAccessPolicies()
+
+	return tx.db.err
+}
+
+func (tx *RTxn) FetchAllPolicies() []Policy {
+	policies := make([]Policy, 0, len(tx.db.policies))
+
+	for _, p := range tx.db.policies {
+		policies = append(policies, p)
+	}
+
+	return policies
 }
 
 func (tx *Txn) UpdateUser(username string, f func(u *User)) error {
@@ -309,7 +327,7 @@ func (db *Handle) writeUsers() {
 	}
 }
 
-func (db *Handle) readAccessRules() {
+func (db *Handle) readAccessPolicies() {
 	if db.err != nil {
 		return
 	}
@@ -355,19 +373,19 @@ func (db *Handle) readAccessRules() {
 		fileAccess := rune(record[3][0])
 		acpAccess := rune(record[3][1])
 
-		db.policies = append(db.policies, acp{
-			name:       record[0],
-			users:      parseAcpUsers(record[1]),
-			paths:      strings.Split(record[2], ":"),
-			fileAccess: access(fileAccess),
-			acpAccess:  access(acpAccess),
+		db.policies = append(db.policies, Policy{
+			Name:       record[0],
+			Users:      parsePolicyUsers(record[1]),
+			Paths:      parsePolicyPaths(record[2]),
+			FileAccess: access(fileAccess),
+			AcpAccess:  access(acpAccess),
 		})
 
 		// @TODO: validate integrity
 	}
 }
 
-func (db *Handle) writeAccessRules() {
+func (db *Handle) writeAccessPolicies() {
 	if db.err != nil {
 		return
 	}
@@ -394,15 +412,17 @@ func (db *Handle) writeAccessRules() {
 	for _, rule := range db.policies {
 		userList := "*"
 
-		if rule.users != nil {
-			userList = strings.Join(rule.users, ":")
+		if rule.Users != nil {
+			userList = strings.Join(rule.Users, ":")
 		}
 
+		sanitizePaths(&rule)
+
 		records[i] = []string{
-			rule.name,
+			rule.Name,
 			userList,
-			strings.Join(rule.paths, ":"),
-			string([]rune{rune(rule.fileAccess), rune(rule.acpAccess)}),
+			strings.Join(rule.Paths, ":"),
+			string([]rune{rune(rule.FileAccess), rune(rule.AcpAccess)}),
 		}
 
 		i++
@@ -421,10 +441,29 @@ func (db *Handle) writeAccessRules() {
 	}
 }
 
-func parseAcpUsers(s string) []string {
+func sanitizePaths(policy *Policy) {
+	for i, p := range policy.Paths {
+		p = strings.ReplaceAll(p, "%", "%25")
+		p = strings.ReplaceAll(p, ":", "%3A")
+		policy.Paths[i] = p
+	}
+}
+
+func parsePolicyUsers(s string) []string {
 	if s == "*" {
 		return nil
 	}
 
 	return strings.Split(s, ":")
+}
+
+// @TODO: QueryUnescape could return error
+func parsePolicyPaths(s string) []string {
+	paths := strings.Split(s, ":")
+
+	for i, p := range paths {
+		paths[i], _ = url.QueryUnescape(p)
+	}
+
+	return paths
 }

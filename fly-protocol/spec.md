@@ -136,8 +136,7 @@ Arguments:
 
 Gets a server option. Currently available options:
 
-- ReadMaxChunkSize: gets the maximum chunk size that the client would like to get (defaults to 16KB)
-- WriteMaxChunkSize: returns the maximum chunk size that the server will accept
+- MaxChunkSize: returns the maximum chunk size that the server will accept on writes, and for the ReadChunkSize option
 
 SETOPT
 ---
@@ -149,7 +148,7 @@ Arguments:
 
 Sets a server option. Currently available options:
 
-- ReadMaxChunkSize: sets the maximum chunk size that the client would like to get (valid values: 16KB to 16MB)
+- ReadChunkSize: sets the chunk size that the client would like to get when reading (up to MaxChunkSize, server should default to 16KB)
 
 File Management
 ===
@@ -161,6 +160,9 @@ Usage: LIST folder
 
 Lists all the files under the given folder. Show the file name,
 file size, and last modified time.
+
+Instead of a folder, you could also pass a file name to get
+its size and last modified time.
 
 Supports wildcards: * and **.
 
