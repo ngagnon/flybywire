@@ -84,6 +84,17 @@ class Session < SessionIO
         resp
     end
 
+    def write_file(name, contents)
+        resp = cmd!('STREAM', 'W', name)
+        id = resp.value
+
+        put_stream(id)
+        put_blob(contents)
+
+        put_stream(id)
+        put_null
+    end
+
     def get_int()
         val = get_next()
 

@@ -22,6 +22,19 @@ Array
 +First element<LF>
 +Second element<LF>
 
+Table
+---
+
+Simply a two-dimensional array.
+
+=2,3<LF>
++Row 1, column 1<LF>
++Row 1, column 2<LF>
++Row 1, column 3<LF>
++Row 2, column 1<LF>
++Row 2, column 2<LF>
++Row 2, column 3<LF>
+
 Error
 ---
 
@@ -164,11 +177,16 @@ file size, and last modified time.
 Instead of a folder, you could also pass a file name to get
 its size and last modified time.
 
-Supports wildcards: * and **.
+Would be nice: supports wildcards: * and **.
 
 Returns:
 
-TODO
+A table with 4 columns:
+
+- The file type (a string, D for dir, F for everything else)
+- The file name (string)
+- The file size in bytes (integer, or null for folders)
+- The last modified time (in UTC, RFC3339Nano format)
 
 STREAM
 ---

@@ -1,21 +1,25 @@
 - Continue working on more commands
-    - LIST
     - TOUCH
+    - DEL
+    - MOVE
+    - AUTH TOK / TOKEN
     - GETOPT/SETOPT 
         * chunk size negotiation
         * windows names (https://stackoverflow.com/questions/1976007/what-characters-are-forbidden-in-windows-and-linux-directory-names, case insensitive)
     - CHROOT
-    - DEL
-    - AUTH TOK / TOKEN
-    - MOVE
-    - COPY => could be slow operation if recursive
     - LISTACP
     - ADDACP
     - MODACP
     - RMACP
-    - SYNC
+- Think more about LIST types (D/F). For hard links and other weird things
+- LIST of / should not show .fly!!!
+- Oops, convert camelCase methods to snake_case in rspec tests
 - Refactor commands & specs to have one file per command
+    - Also, remove the command_ prefix, and just put helper stuff in a separate package
 - Ruby tests shouldn't test things with the local disk. Should just use the protocol itself
 - Verify integrity of the databases when reading from them
 - Allow for a custom config path (instead of .fly)
 - Should allow you to pass a single file instead of a dir (for quickly sharing a file)
+- Extra commands
+    - COPY (would require sending progress updates over stream)
+    - SYNC

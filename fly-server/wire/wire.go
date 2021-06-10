@@ -25,6 +25,12 @@ type Array struct {
 	Values []Value
 }
 
+type Table struct {
+	RowCount int
+	ColCount int
+	Data     []Value
+}
+
 type Bool struct {
 	Value bool
 }
@@ -339,6 +345,18 @@ func (a *Array) WriteTo(w io.Writer) error {
 	return err
 }
 
+func (t *Table) WriteTo(w io.Writer) error {
+	buf := new(bytes.Buffer)
+	fmt.Fprintf(buf, "=%d,%d\n", t.RowCount, t.ColCount)
+
+	for _, v := range t.Data {
+		v.WriteTo(buf)
+	}
+
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 func (m *Map) WriteTo(w io.Writer) error {
 	buf := new(bytes.Buffer)
 	fmt.Fprintf(buf, "%%%d\n", len(m.m))
@@ -387,4 +405,18 @@ func (e *Error) Name() string {
 
 func (m *Map) Name() string {
 	return "map"
+}
+
+func (t *Table) Name() string {
+	return "table"
+}
+
+func (t *Table) Add(row []Value) {
+	if len(t.Data) == 0 {
+		t.ColCount = len(row)
+		t.RowCount = 0
+	}
+
+	t.Data = append(t.Data, row...)
+	t.RowCount++
 }

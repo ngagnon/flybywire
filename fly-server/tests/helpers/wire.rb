@@ -51,6 +51,29 @@ module Wire
         end
     end
 
+    class Table
+        attr_reader :row_count
+        attr_reader :col_count
+
+        def initialize(row_count, col_count)
+            @row_count = row_count
+            @col_count = col_count
+            @data = []
+        end
+
+        def push(row)
+            @data.push(row)
+        end
+
+        def [](row)
+            @data[row]
+        end
+ 
+        def put(s)
+            raise "not implemented"
+        end
+    end
+
     class Map
         def initialize(value)
             @value = value
@@ -174,6 +197,23 @@ module Wire
             end
 
             return Array.new(elems)
+        elsif line.start_with? '='
+            line.delete_prefix!("=")
+            elems = line.split(',')
+            tab = Table.new(elems[0].to_i, elems[1].to_i)
+
+            tab.row_count.times do
+                row = []
+
+                tab.col_count.times do
+                    elem = get_next(s)
+                    row.push(elem)
+                end
+
+                tab.push(row)
+            end
+
+            return tab
         elsif line.start_with? '%'
             line.delete_prefix!("%")
             num_pairs = line.to_i
