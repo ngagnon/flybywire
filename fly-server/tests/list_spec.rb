@@ -4,9 +4,15 @@ RSpec.describe 'LIST' do
     context 'admin' do
         before(:all) do
             admin.cmd!('MKDIR', 'list-admin')
-            admin.write_file('list-admin/file1.txt', "hello\nworld\n")
-            admin.write_file('list-admin/file2.txt', "hello\nworld\nfoo\nbar\n")
-            admin.write_file('list-admin/file3.txt', "hello\nworld\nfoo\nbar\nsomething\nelse\n")
+
+            @files = [
+                {path: 'list-admin/file1.txt', content: "hello\nworld\n"},
+                {path: 'list-admin/file2.txt', content: "hello\nworld\nfoo\nbar\n"},
+                {path: 'list-admin/file3.txt', content: "hello\nworld\nfoo\nbar\nsomething\nelse\n"}
+            ]
+
+            @files.each { |f| admin.write_file(f[:path], f[:content]) }
+
             admin.cmd!('MKDIR', 'list-admin/folderthing')
         end
 
@@ -17,48 +23,20 @@ RSpec.describe 'LIST' do
                 expect(resp.row_count).to eq(4)
                 expect(resp.col_count).to eq(4)
 
-                # @TODO: refactor in a loop...
-                expect(resp[0][0]).to be_a(Wire::String)
-                expect(resp[0][0].value).to eq('F')
+                @files.each_with_index do |f, i|
+                    expect(resp[i][0]).to be_a(Wire::String)
+                    expect(resp[i][0].value).to eq('F')
 
-                expect(resp[0][1]).to be_a(Wire::String)
-                expect(resp[0][1].value).to eq('file1.txt')
+                    expect(resp[i][1]).to be_a(Wire::String)
+                    expect(resp[i][1].value).to eq(f[:path].split('/')[1])
 
-                expect(resp[0][2]).to be_a(Wire::Integer)
-                expect(resp[0][2].value).to eq(12)
+                    expect(resp[i][2]).to be_a(Wire::Integer)
+                    expect(resp[i][2].value).to eq(f[:content].length)
 
-                expect(resp[0][3]).to be_a(Wire::String)
-                # @TODO: validate format
-                mtime = Time.parse(resp[0][3].value)
-                expect(mtime).to be_within(0.100).of(Time.now)
-
-                expect(resp[1][0]).to be_a(Wire::String)
-                expect(resp[1][0].value).to eq('F')
-
-                expect(resp[1][1]).to be_a(Wire::String)
-                expect(resp[1][1].value).to eq('file2.txt')
-
-                expect(resp[1][2]).to be_a(Wire::Integer)
-                expect(resp[1][2].value).to eq(20)
-
-                expect(resp[1][3]).to be_a(Wire::String)
-                # @TODO: validate format
-                mtime = Time.parse(resp[1][3].value)
-                expect(mtime).to be_within(0.100).of(Time.now)
-
-                expect(resp[2][0]).to be_a(Wire::String)
-                expect(resp[2][0].value).to eq('F')
-
-                expect(resp[2][1]).to be_a(Wire::String)
-                expect(resp[2][1].value).to eq('file3.txt')
-
-                expect(resp[2][2]).to be_a(Wire::Integer)
-                expect(resp[2][2].value).to eq(35)
-
-                expect(resp[2][3]).to be_a(Wire::String)
-                # @TODO: validate format
-                mtime = Time.parse(resp[2][3].value)
-                expect(mtime).to be_within(0.100).of(Time.now)
+                    expect(resp[i][3]).to be_a(Wire::String)
+                    mtime = DateTime.strptime(resp[i][3].value, '%Y-%m-%dT%H:%M:%S.%NZ')
+                    expect(mtime.to_time).to be_within(0.100).of(Time.now)
+                end
 
                 expect(resp[3][0]).to be_a(Wire::String)
                 expect(resp[3][0].value).to eq('D')
@@ -69,9 +47,8 @@ RSpec.describe 'LIST' do
                 expect(resp[3][2]).to be_a(Wire::Null)
 
                 expect(resp[3][3]).to be_a(Wire::String)
-                # @TODO: validate format
-                mtime = Time.parse(resp[3][3].value)
-                expect(mtime).to be_within(0.100).of(Time.now)
+                mtime = DateTime.strptime(resp[3][3].value, '%Y-%m-%dT%H:%M:%S.%NZ')
+                expect(mtime.to_time).to be_within(0.100).of(Time.now)
             end
         end
 
@@ -92,9 +69,8 @@ RSpec.describe 'LIST' do
                 expect(resp[0][2].value).to eq(20)
 
                 expect(resp[0][3]).to be_a(Wire::String)
-                # @TODO: validate format
-                mtime = Time.parse(resp[0][3].value)
-                expect(mtime).to be_within(0.100).of(Time.now)
+                mtime = DateTime.strptime(resp[0][3].value, '%Y-%m-%dT%H:%M:%S.%NZ')
+                expect(mtime.to_time).to be_within(0.100).of(Time.now)
             end
         end
     end

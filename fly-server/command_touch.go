@@ -1,7 +1,10 @@
 package main
 
 import (
+	"errors"
+	"os"
 	"strings"
+	"time"
 
 	"github.com/ngagnon/fly-server/wire"
 )
@@ -23,20 +26,24 @@ func handleTouch(args []wire.Value, s *sessionInfo) wire.Value {
 		return wire.NewError("DENIED", "Access denied")
 	}
 
-	/*
-		realPath, ok := resolveVirtualPath(vPath)
+	realPath, ok := resolveVirtualPath(vPath)
 
-		if !ok {
-			return wire.NewError("NOTFOUND", "No such file or directory")
-		}
+	if !ok {
+		return wire.NewError("NOTFOUND", "No such file or directory")
+	}
 
-			now := time.Now()
+	now := time.Now()
 
-			if err := os.Chtimes(realPath, now, now); err != nil {
-				// @TODO: debug log
-				return wire.NewError("ERR", "Unexpected error occurred")
-			}
-	*/
+	err := os.Chtimes(realPath, now, now)
+
+	if errors.Is(err, os.ErrNotExist) {
+		return wire.NewError("NOTFOUND", "No such file or directory")
+	}
+
+	if err != nil {
+		// @TODO: debug log
+		return wire.NewError("ERR", "Unexpected error occurred")
+	}
 
 	return wire.NewString("OK")
 }

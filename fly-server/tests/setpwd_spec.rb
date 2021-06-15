@@ -21,12 +21,12 @@ RSpec.describe 'SETPWD' do
     context 'regular user' do
         context 'self' do
             before(:all) do
-                @resp = regularUser.cmd('SETPWD', 'joe', 'newpassword')
+                @resp = regular_user.cmd('SETPWD', 'joe', 'newpassword')
             end
 
             after(:all) do
                 # put back the original password
-                regularUser.cmd!('SETPWD', 'joe', 'regularguy')
+                regular_user.cmd!('SETPWD', 'joe', 'regularguy')
             end
 
             it 'returns OK' do
@@ -34,7 +34,7 @@ RSpec.describe 'SETPWD' do
             end
 
             it 'updates password' do
-                regularUser.cmd!('AUTH', 'PWD', 'joe', 'newpassword')
+                regular_user.cmd!('AUTH', 'PWD', 'joe', 'newpassword')
             end
         end
 
@@ -43,7 +43,7 @@ RSpec.describe 'SETPWD' do
                 @username = Username.get_next
                 admin.cmd!('ADDUSER', @username, 'topsecret')
 
-                @resp = regularUser.cmd('SETPWD', @username, 'newpassword')
+                @resp = regular_user.cmd('SETPWD', @username, 'newpassword')
             end
 
             it 'returns an error' do
@@ -75,7 +75,7 @@ RSpec.describe 'SETPWD' do
     context 'single-user' do
         before(:all) do
             @username = Username.get_next
-            @resp = singleUser.cmd('SETPWD', @username, 'newpassword')
+            @resp = single_user.cmd('SETPWD', @username, 'newpassword')
         end
 
         it 'returns an error' do

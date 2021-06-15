@@ -16,9 +16,9 @@ RSpec.describe 'TOUCH' do
             resp = admin.cmd!('LIST', 'touch-admin.txt')
             expect(resp).to be_a(Wire::Table)
             expect(resp.row_count).to eq(1)
-            expect(resp[0][0].value).to eq('touch-admin.txt')
+            expect(resp[0][1].value).to eq('touch-admin.txt')
 
-            mtime = Time.parse(resp[0][2].value)
+            mtime = Time.parse(resp[0][3].value)
             expect(mtime).to be_within(0.100).of(Time.now)
         end
     end
@@ -33,9 +33,9 @@ RSpec.describe 'TOUCH' do
 
     context 'single user' do
         before(:all) do
-            singleUser.write_file('touch-single-user.txt', "hello\nworld\n")
+            single_user.write_file('touch-single-user.txt', "hello\nworld\n")
             sleep 0.5
-            @resp = singleUser.cmd('TOUCH', 'touch-single-user.txt')
+            @resp = single_user.cmd('TOUCH', 'touch-single-user.txt')
         end
 
         it 'returns OK' do
@@ -43,12 +43,12 @@ RSpec.describe 'TOUCH' do
         end
 
         it 'updates modified time' do
-            resp = singleUser.cmd!('LIST', 'touch-single-user.txt')
+            resp = single_user.cmd!('LIST', 'touch-single-user.txt')
             expect(resp).to be_a(Wire::Table)
             expect(resp.row_count).to eq(1)
-            expect(resp[0][0].value).to eq('touch-single-user.txt')
+            expect(resp[0][1].value).to eq('touch-single-user.txt')
 
-            mtime = Time.parse(resp[0][2].value)
+            mtime = Time.parse(resp[0][3].value)
             expect(mtime).to be_within(0.100).of(Time.now)
         end
     end

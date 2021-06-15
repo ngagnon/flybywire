@@ -186,7 +186,7 @@ A table with 4 columns:
 - The file type (a string, D for dir, F for everything else)
 - The file name (string)
 - The file size in bytes (integer, or null for folders)
-- The last modified time (in UTC, RFC3339Nano format)
+- The last modified time (in UTC, format: 2021-06-15T00:08:20.232167574Z)
 
 STREAM
 ---

@@ -16,9 +16,9 @@ module TestSuite
         check_connection(6767)
         check_connection(6701)
 
-        @@singleUserDir = Dir.mktmpdir 'fly'
-        @@singleUserServer = Server.new(@@singleUserDir, 6701)
-        @@singleUser = Session.new(6701)
+        @@single_user_dir = Dir.mktmpdir 'fly'
+        @@single_user_server = Server.new(@@single_user_dir, 6701)
+        @@single_user = Session.new(6701)
 
         $dir = Dir.mktmpdir 'fly'
         @@server = Server.new $dir
@@ -31,8 +31,8 @@ module TestSuite
         @@admin.cmd!('AUTH', 'PWD', 'example', 'supersecret')
         @@admin.cmd!('ADDUSER', 'joe', 'regularguy')
 
-        @@regularUser = Session.new
-        @@regularUser.cmd!('AUTH', 'PWD', 'joe', 'regularguy')
+        @@regular_user = Session.new
+        @@regular_user.cmd!('AUTH', 'PWD', 'joe', 'regularguy')
 
         @@unauth = Session.new
     end
@@ -62,15 +62,15 @@ module TestSuite
 
     def self.teardown()
         @@admin.close
-        @@regularUser.close
+        @@regular_user.close
         @@unauth.close
-        @@singleUser.close
+        @@single_user.close
 
         @@server.kill
         FileUtils.rm_rf $dir
 
-        @@singleUserServer.kill
-        FileUtils.rm_rf @@singleUserDir
+        @@single_user_server.kill
+        FileUtils.rm_rf @@single_user_dir
 
         normalCase = @@commands.select { |x| x == x.upcase }
         normalCase.each do |cmd|
@@ -90,12 +90,12 @@ module TestSuite
         @@unauth
     end
 
-    def regularUser()
-        @@regularUser
+    def regular_user()
+        @@regular_user
     end
 
-    def singleUser()
-        @@singleUser
+    def single_user()
+        @@single_user
     end
 end
 

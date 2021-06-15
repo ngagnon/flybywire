@@ -20,7 +20,7 @@ RSpec.describe 'SETADM' do
 
     context 'regular user' do
         before(:all) do
-            @resp = regularUser.cmd('SETADM', 'joe', true)
+            @resp = regular_user.cmd('SETADM', 'joe', true)
         end
 
         it 'returns an error' do
@@ -54,7 +54,7 @@ RSpec.describe 'SETADM' do
 
     context 'single-user' do
         it 'returns an error' do
-            resp = singleUser.cmd('SETADM', 'example', false)
+            resp = single_user.cmd('SETADM', 'example', false)
             expect(resp).to be_error('ILLEGAL')
         end
     end

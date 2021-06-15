@@ -1,5 +1,4 @@
 - Continue working on more commands
-    - TOUCH
     - DEL
     - MOVE
     - AUTH TOK / TOKEN
@@ -13,7 +12,8 @@
     - RMACP
 - Think more about LIST types (D/F). For hard links and other weird things
 - LIST of / should not show .fly!!!
-- Oops, convert camelCase methods to snake_case in rspec tests
+- Could really improve the rspec tests with dynamic generation, or refactoring,
+  or both. Also need to be beefed up to handle all cases (regular user, single user, unauth, etc.)
 - Refactor commands & specs to have one file per command
     - Also, remove the command_ prefix, and just put helper stuff in a separate package
 - Ruby tests shouldn't test things with the local disk. Should just use the protocol itself
