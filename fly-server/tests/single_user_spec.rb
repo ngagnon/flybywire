@@ -5,7 +5,7 @@ RSpec.describe 'Single-user mode' do
     before(:all) do
         @dir = Dir.mktmpdir 'fly'
         @server = Server.new(@dir, 6868)
-        @session = Session.new(6868)
+        @session = Session.new(port: 6868)
     end
 
     after(:all) do

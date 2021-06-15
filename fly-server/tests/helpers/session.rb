@@ -38,7 +38,12 @@ class SessionBuffer < SessionIO
 end
 
 class Session < SessionIO
-    def initialize(port = 6767)
+    attr_reader :label
+
+    def initialize(**opts)
+        port = opts[:port] || 6767
+        @label = opts[:label] || 'no name'
+
         5.times do
             begin
                 @s = TCPSocket.new('localhost', port)
@@ -93,6 +98,16 @@ class Session < SessionIO
 
         put_stream(id)
         put_null
+
+        50.times do
+            resp = cmd('LIST', name)
+
+            if resp.is_a? Wire::Error
+                sleep 0.020
+            else
+                break
+            end
+        end
     end
 
     def get_int()

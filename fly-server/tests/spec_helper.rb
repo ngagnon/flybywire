@@ -18,7 +18,7 @@ module TestSuite
 
         @@single_user_dir = Dir.mktmpdir 'fly'
         @@single_user_server = Server.new(@@single_user_dir, 6701)
-        @@single_user = Session.new(6701)
+        @@single_user = Session.new(port: 6701, label: 'single user')
 
         $dir = Dir.mktmpdir 'fly'
         @@server = Server.new $dir
@@ -27,14 +27,14 @@ module TestSuite
         session.cmd!('ADDUSER', 'example', 'supersecret')
         session.close
 
-        @@admin = Session.new
+        @@admin = Session.new(label: 'admin')
         @@admin.cmd!('AUTH', 'PWD', 'example', 'supersecret')
         @@admin.cmd!('ADDUSER', 'joe', 'regularguy')
 
-        @@regular_user = Session.new
+        @@regular_user = Session.new(label: 'regular user')
         @@regular_user.cmd!('AUTH', 'PWD', 'joe', 'regularguy')
 
-        @@unauth = Session.new
+        @@unauth = Session.new(label: 'unauthenticated')
     end
 
     def self.check_connection(port)
@@ -96,6 +96,20 @@ module TestSuite
 
     def single_user()
         @@single_user
+    end
+
+    def open(key)
+        if key == 'single user'
+            single_user
+        elsif key == 'regular user'
+            regular_user
+        elsif key == 'admin'
+            admin
+        elsif key == 'unauthenticated'
+            unauth
+        else
+            raise "no such session: #{key}"
+        end
     end
 end
 

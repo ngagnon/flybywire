@@ -11,7 +11,10 @@ RSpec.describe 'LIST' do
                 {path: 'list-admin/file3.txt', content: "hello\nworld\nfoo\nbar\nsomething\nelse\n"}
             ]
 
-            @files.each { |f| admin.write_file(f[:path], f[:content]) }
+            @files.each do |f| 
+                admin.write_file(f[:path], f[:content])
+                f[:mtime] = Time.now
+            end
 
             admin.cmd!('MKDIR', 'list-admin/folderthing')
         end
@@ -35,7 +38,7 @@ RSpec.describe 'LIST' do
 
                     expect(resp[i][3]).to be_a(Wire::String)
                     mtime = DateTime.strptime(resp[i][3].value, '%Y-%m-%dT%H:%M:%S.%NZ')
-                    expect(mtime.to_time).to be_within(0.100).of(Time.now)
+                    expect(mtime.to_time).to be_within(0.1).of(f[:mtime])
                 end
 
                 expect(resp[3][0]).to be_a(Wire::String)

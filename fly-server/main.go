@@ -28,6 +28,7 @@ var commandHandlers = map[string]commandHandler{
 	"AUTH":     handleAuth,
 	"MKDIR":    handleMkdir,
 	"TOUCH":    handleTouch,
+	"DEL":      handleDel,
 	"LIST":     handleList,
 	"LISTUSER": handleListUser,
 	"ADDUSER":  handleAddUser,
