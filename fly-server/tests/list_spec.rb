@@ -53,6 +53,15 @@ RSpec.describe 'LIST' do
                 mtime = DateTime.strptime(resp[3][3].value, '%Y-%m-%dT%H:%M:%S.%NZ')
                 expect(mtime.to_time).to be_within(0.100).of(Time.now)
             end
+
+            it 'does not show .fly' do
+                resp = admin.cmd('LIST', '/')
+                expect(resp).to be_a(Wire::Table)
+
+                resp.each do |f|
+                    expect(f[1].value).not_to eq('.fly')
+                end
+            end
         end
 
         describe 'file' do
@@ -73,7 +82,7 @@ RSpec.describe 'LIST' do
 
                 expect(resp[0][3]).to be_a(Wire::String)
                 mtime = DateTime.strptime(resp[0][3].value, '%Y-%m-%dT%H:%M:%S.%NZ')
-                expect(mtime.to_time).to be_within(0.100).of(Time.now)
+                expect(mtime.to_time).to be_within(0.100).of(@files[1][:mtime])
             end
         end
     end

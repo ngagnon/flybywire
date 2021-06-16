@@ -26,9 +26,9 @@ func handleTouch(args []wire.Value, s *sessionInfo) wire.Value {
 		return wire.NewError("DENIED", "Access denied")
 	}
 
-	realPath, ok := resolveVirtualPath(vPath)
+	realPath := resolveVirtualPath(vPath)
 
-	if !ok {
+	if isReservedPath(realPath) {
 		return wire.NewError("NOTFOUND", "No such file or directory")
 	}
 

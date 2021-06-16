@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -26,9 +27,9 @@ func handleList(args []wire.Value, s *sessionInfo) wire.Value {
 		return wire.NewError("DENIED", "Access denied")
 	}
 
-	realPath, ok := resolveVirtualPath(vPath)
+	realPath := resolveVirtualPath(vPath)
 
-	if !ok {
+	if isReservedPath(realPath) {
 		return wire.NewError("NOTFOUND", "No such file or directory")
 	}
 
@@ -61,18 +62,23 @@ func handleList(args []wire.Value, s *sessionInfo) wire.Value {
 				return wire.NewError("ERR", "Unexpected error occurred")
 			}
 
-			addFile(table, info)
+			fullPath := path.Join(realPath, info.Name())
+			addFile(table, info, fullPath)
 		}
 	} else {
-		addFile(table, info)
+		addFile(table, info, realPath)
 	}
 
 	return table
 }
 
-func addFile(t *wire.Table, info os.FileInfo) {
+func addFile(t *wire.Table, info os.FileInfo, fullPath string) {
 	var ftype string
 	var fsize wire.Value
+
+	if isReservedPath(fullPath) {
+		return
+	}
 
 	if info.IsDir() {
 		ftype = "D"

@@ -1,5 +1,4 @@
 - Sometimes 'closing stream' of close_spec doesn't work
-- LIST of / should not show .fly!!!
 - TOUCH should create file if it does not exist!
 - Continue working on more commands
     - MOVE

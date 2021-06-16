@@ -5,12 +5,12 @@ import (
 	"strings"
 )
 
-func resolveVirtualPath(vPath string) (realPath string, ok bool) {
+func resolveVirtualPath(vPath string) string {
 	cleanPath := strings.Trim(vPath, "/")
+	return path.Join(dir, cleanPath)
+}
 
-	if cleanPath == ".fly" || strings.HasPrefix(cleanPath, ".fly/") {
-		return "", false
-	}
-
-	return path.Join(dir, cleanPath), true
+func isReservedPath(realPath string) bool {
+	flyRoot := path.Join(dir, ".fly")
+	return strings.HasPrefix(realPath, flyRoot)
 }

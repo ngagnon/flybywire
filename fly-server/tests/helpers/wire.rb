@@ -68,6 +68,10 @@ module Wire
         def [](row)
             @data[row]
         end
+
+        def each(&block)
+            @data.each(&block)
+        end
  
         def put(s)
             raise "not implemented"
