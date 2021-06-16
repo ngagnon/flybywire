@@ -77,9 +77,11 @@ func addFile(t *wire.Table, info os.FileInfo) {
 	if info.IsDir() {
 		ftype = "D"
 		fsize = wire.Null
-	} else {
+	} else if info.Mode().IsRegular() {
 		ftype = "F"
 		fsize = wire.NewInteger(int(info.Size()))
+	} else {
+		return
 	}
 
 	t.Add([]wire.Value{
