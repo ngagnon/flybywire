@@ -1,4 +1,3 @@
-- Sometimes 'closing stream' of close_spec doesn't work
 - TOUCH should create file if it does not exist!
 - Continue working on more commands
     - MOVE

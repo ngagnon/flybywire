@@ -32,12 +32,14 @@ type frame struct {
 
 type readStream struct {
 	cancel chan struct{}
+	done   chan struct{}
 	file   *os.File
 }
 
 type writeStream struct {
 	frames    chan frame
 	cancel    chan struct{}
+	done      chan struct{}
 	finalPath string
 	file      *os.File
 }
@@ -72,6 +74,7 @@ func (s *S) NewReadStream(path string) (id int, wirErr *wire.Error) {
 
 	stream := &readStream{
 		cancel: make(chan struct{}, 2),
+		done:   make(chan struct{}),
 		file:   file,
 	}
 
@@ -103,6 +106,7 @@ func (s *S) NewWriteStream(finalPath string) (id int, wireErr *wire.Error) {
 	stream := &writeStream{
 		frames:    make(chan frame, 5),
 		cancel:    make(chan struct{}, 2),
+		done:      make(chan struct{}),
 		finalPath: finalPath,
 		file:      file,
 	}
@@ -157,6 +161,7 @@ func nextStreamId(streams []stream) (id int, ok bool) {
 func handleReadStream(id int, s *readStream, session *S) {
 	defer session.releaseStream(id)
 	defer s.file.Close()
+	defer close(s.done)
 
 	session.waitGroup.Add(1)
 	defer session.waitGroup.Done()
@@ -197,6 +202,7 @@ func handleReadStream(id int, s *readStream, session *S) {
 
 func handleWriteStream(id int, s *writeStream, session *S) {
 	defer session.releaseStream(id)
+	defer close(s.done)
 
 	session.waitGroup.Add(1)
 	defer session.waitGroup.Done()
@@ -297,6 +303,7 @@ func (s *writeStream) mode() mode {
 
 func (s *writeStream) close() {
 	s.cancel <- struct{}{}
+	<-s.done
 }
 
 func (s *readStream) mode() mode {
@@ -305,4 +312,5 @@ func (s *readStream) mode() mode {
 
 func (s *readStream) close() {
 	s.cancel <- struct{}{}
+	<-s.done
 }
