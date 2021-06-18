@@ -271,7 +271,7 @@ MOVE
 
 Usage: MOVE from to
 
-Moves a file or folder.
+Moves/renames a file or folder.
 
 COPY
 ---

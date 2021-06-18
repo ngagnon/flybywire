@@ -56,5 +56,5 @@ func handleTouch(args []wire.Value, s *sessionInfo) wire.Value {
 		return wire.NewError("ERR", "Unexpected error occurred")
 	}
 
-	return wire.NewString("OK")
+	return wire.OK
 }

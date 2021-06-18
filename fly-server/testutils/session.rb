@@ -89,6 +89,34 @@ class Session < SessionIO
         resp
     end
 
+    def read_file(name)
+        resp = cmd!('STREAM', 'R', name)
+        id = resp.value
+        contents = ''
+
+        while true
+            resp = get_next()
+
+            if !(resp.is_a? Wire::Frame)
+                raise 'response was expected to be a stream frame'
+            end
+
+            if resp.id != id
+                raise "unexpected frame id #{id}"
+            end
+
+            if resp.payload.is_a? Wire::Null
+                return contents
+            end
+
+            if !(resp.payload.is_a? Wire::Blob)
+                raise 'expected stream frame to be null or blob'
+            end
+
+            contents << resp.payload.value
+        end
+    end
+
     def write_file(name, contents)
         resp = cmd!('STREAM', 'W', name)
         id = resp.value

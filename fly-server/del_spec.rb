@@ -5,7 +5,7 @@ RSpec.describe 'DEL' do
         ['admin', 'regular user', 'single user'].each do |persona|
             context "as #{persona}" do
                 before(:all) do
-                    @session = open(persona)
+                    @session = as(persona)
                     @file_name = "del-#{SecureRandom.hex}.txt"
                     @session.write_file(@file_name, "hello\nworld\n")
                     @resp = @session.cmd('DEL', @file_name)
@@ -27,7 +27,7 @@ RSpec.describe 'DEL' do
         ['admin', 'regular user', 'single user'].each do |persona|
             context "as #{persona}" do
                 before(:all) do
-                    @session = open(persona)
+                    @session = as(persona)
 
                     @folder_name = "del-#{SecureRandom.hex}"
                     @session.cmd!('MKDIR', @folder_name)

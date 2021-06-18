@@ -29,6 +29,7 @@ var commandHandlers = map[string]commandHandler{
 	"MKDIR":    handleMkdir,
 	"TOUCH":    handleTouch,
 	"DEL":      handleDel,
+	"MOVE":     handleMove,
 	"LIST":     handleList,
 	"LISTUSER": handleListUser,
 	"ADDUSER":  handleAddUser,

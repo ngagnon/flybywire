@@ -98,7 +98,7 @@ module TestSuite
         @@single_user
     end
 
-    def open(key)
+    def as(key)
         if key == 'single user'
             single_user
         elsif key == 'regular user'
