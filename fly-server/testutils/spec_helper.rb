@@ -4,10 +4,10 @@ require 'fileutils'
 require 'tmpdir'
 require 'test-prof'
 
-require_relative 'helpers/server'
-require_relative 'helpers/session'
-require_relative 'helpers/wire'
-require_relative 'helpers/username'
+require_relative 'server'
+require_relative 'session'
+require_relative 'wire'
+require_relative 'username'
 
 module TestSuite
     def self.setup()
