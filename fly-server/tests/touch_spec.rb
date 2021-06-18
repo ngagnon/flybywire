@@ -21,6 +21,24 @@ RSpec.describe 'TOUCH' do
             mtime = Time.parse(resp[0][3].value)
             expect(mtime).to be_within(0.100).of(Time.now)
         end
+
+        it 'creates file if not exist' do
+            resp = admin.cmd('TOUCH', 'touch-admin-new.txt')
+            expect(resp).to be_ok
+
+            resp = admin.cmd!('LIST', 'touch-admin-new.txt')
+            expect(resp).to be_a(Wire::Table)
+            expect(resp.row_count).to eq(1)
+            expect(resp[0][1].value).to eq('touch-admin-new.txt')
+
+            mtime = Time.parse(resp[0][3].value)
+            expect(mtime).to be_within(0.100).of(Time.now)
+        end
+
+        it 'returns error when directory does not exist' do
+            resp = admin.cmd('TOUCH', 'some-dir-touch/touch-admin-new.txt')
+            expect(resp).to be_error('NOTFOUND')
+        end
     end
 
     context 'unauthenticated' do

@@ -1,4 +1,5 @@
 - TOUCH should create file if it does not exist!
+- Ruby TCP socket read timeouts (use read_nonblock, IO:select)
 - Continue working on more commands
     - MOVE
     - AUTH TOK / TOKEN

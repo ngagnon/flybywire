@@ -33,11 +33,22 @@ func handleTouch(args []wire.Value, s *sessionInfo) wire.Value {
 	}
 
 	now := time.Now()
-
 	err := os.Chtimes(realPath, now, now)
 
 	if errors.Is(err, os.ErrNotExist) {
-		return wire.NewError("NOTFOUND", "No such file or directory")
+		var f *os.File
+		f, err = os.Create(realPath)
+
+		if errors.Is(err, os.ErrNotExist) {
+			return wire.NewError("NOTFOUND", "No such file or directory")
+		}
+
+		if err != nil {
+			// @TODO: debug log
+			return wire.NewError("ERR", "Unexpected error occurred")
+		}
+
+		f.Close()
 	}
 
 	if err != nil {
