@@ -110,8 +110,6 @@ Response:
 TOKEN
 ---
 
-Usage: TOKEN
-
 When already authenticated, returns a token valid for 5 minutes that the client can use in a new connection (instead of entering the username and password again).
 
 Response:
@@ -120,8 +118,6 @@ Authentication token (string)
 
 PING
 ---
-
-Usage: PING 
 
 Pings the server (could be useful for keepalive).
 
@@ -143,25 +139,26 @@ OK (string)
 GETOPT
 ---
 
+Retrieve the value of a connection option. Currently available options:
+
+- MaxChunkSize (integer): returns the maximum chunk size (in bytes) that the server will accept
+- ChunkSize (integer): returns the maximum chunk size (in bytes) used for this connection
+
 Arguments: 
 
 - Key (string)
 
-Gets a server option. Currently available options:
-
-- MaxChunkSize: returns the maximum chunk size that the server will accept on writes, and for the ReadChunkSize option
-
 SETOPT
 ---
+
+Sets the value of a connection option. Currently available options:
+
+- ChunkSize (integer): sets max chunk size (in bytes) for this connection. Will apply both to reads and writes.
 
 Arguments: 
 
 - Key (string)
 - Value (type depends on the key)
-
-Sets a server option. Currently available options:
-
-- ReadChunkSize: sets the chunk size that the client would like to get when reading (up to MaxChunkSize, server should default to 16KB)
 
 File Management
 ===

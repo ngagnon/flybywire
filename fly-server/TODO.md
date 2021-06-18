@@ -1,7 +1,8 @@
 - Continue working on more commands
-    - AUTH TOK / TOKEN
     - GETOPT/SETOPT 
+        * clarify what's permanent and what's not (or maybe use different commands?)
         * chunk size negotiation
+        * auth token expiry
         * windows names (https://stackoverflow.com/questions/1976007/what-characters-are-forbidden-in-windows-and-linux-directory-names, case insensitive)
     - CHROOT
     - LISTACP
@@ -18,7 +19,7 @@
   => could just be defined in the spec (servers need to always have a user named "guest" that has access to nothing by default)
 - Should be TLS by default (accept server cert like when connecting over SSH)
 - Put vfs & auth helpers into a separate package?
+- Basic CLI client
 - Extra commands
     - COPY (would require sending progress updates over stream)
     - SYNC
-- CLI client

@@ -61,8 +61,14 @@ var Null = &null{}
 var ErrFormat = errors.New("Protocol error")
 var ErrIO = errors.New("I/O error")
 
-func ReadValue(r *bufio.Reader) (Value, error) {
-	return readValue(r, true)
+func ReadValue(r io.Reader) (Value, error) {
+	bufReader, ok := r.(*bufio.Reader)
+
+	if !ok {
+		bufReader = bufio.NewReader(r)
+	}
+
+	return readValue(bufReader, true)
 }
 
 func readValue(r *bufio.Reader, canBeTag bool) (Value, error) {

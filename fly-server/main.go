@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/ngagnon/fly-server/crypto"
 	"github.com/ngagnon/fly-server/db"
 	log "github.com/ngagnon/fly-server/logging"
 	"github.com/ngagnon/fly-server/session"
@@ -26,6 +27,7 @@ var commandHandlers = map[string]commandHandler{
 	"PING":     handlePing,
 	"WHOAMI":   handleWhoAmI,
 	"AUTH":     handleAuth,
+	"TOKEN":    handleToken,
 	"MKDIR":    handleMkdir,
 	"TOUCH":    handleTouch,
 	"DEL":      handleDel,
@@ -43,6 +45,7 @@ var commandHandlers = map[string]commandHandler{
 
 var dir string
 var flydb *db.Handle
+var tokenKey []byte
 
 func main() {
 	port := flag.Int("port", 6767, "TCP port to listen on")
@@ -71,6 +74,12 @@ func main() {
 
 	if flydb, err = db.Open(dir); err != nil {
 		log.Fatalf("%v", err)
+	}
+
+	tokenKey, err = crypto.RandomKey(16)
+
+	if err != nil {
+		log.Errorf("Failed to generate a cryptographic key for token authentication: %v", err)
 	}
 
 	log.Infof("Server started. Listening on port %d", *port)
