@@ -1,31 +1,59 @@
 package main
 
-func checkAuth(s *sessionInfo, path string, write bool) bool {
-	if s.singleUser {
-		return true
+import (
+	"github.com/ngagnon/fly-server/wire"
+	"golang.org/x/crypto/bcrypt"
+)
+
+func handleAuth(args []wire.Value, s *sessionInfo) wire.Value {
+	if len(args) == 0 {
+		return wire.NewError("ARG", "Command AUTH expects at least 1 argument")
 	}
 
-	if s.username == "" {
-		return false
+	authType, ok := args[0].(*wire.String)
+
+	if !ok {
+		return wire.NewError("ARG", "AUTH type should be a string, got %s", args[0].Name())
 	}
 
-	if s.user.Admin {
-		return true
+	if authType.Value != "PWD" {
+		return wire.NewError("ARG", "Unsupported AUTH type: %s", authType.Value)
 	}
 
-	// @TODO: check ACPs
+	if len(args) != 3 {
+		return wire.NewError("ARG", "Password authentication requires a username and a password")
+	}
 
-	return true
+	username, ok := args[1].(*wire.String)
+
+	if !ok {
+		return wire.NewError("ARG", "Username should be a string, got %s", args[1].Name())
+	}
+
+	password, ok := args[2].(*wire.String)
+
+	if !ok {
+		return wire.NewError("ARG", "Password should be a string, got %s", args[2].Name())
+	}
+
+	if !verifyPassword(username.Value, password.Value) {
+		return wire.NewError("DENIED", "Authentication failed")
+	}
+
+	s.changeUser(username.Value)
+	return wire.OK
 }
 
-func checkAdmin(s *sessionInfo) bool {
-	if s.singleUser {
-		return true
-	}
+func verifyPassword(username string, password string) bool {
+	tx := flydb.RTxn()
+	user, ok := tx.FindUser(username)
+	tx.Complete()
 
-	if s.username == "" {
+	if !ok {
 		return false
 	}
 
-	return s.user.Admin
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+
+	return err == nil
 }

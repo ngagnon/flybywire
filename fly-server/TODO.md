@@ -13,6 +13,7 @@
   or both. Also need to be beefed up to handle all cases (regular user, single user, unauth, ACPs, etc.). Should also test for error scenarios, such as file not found.
 - Refactor commands & specs to have one file per command
     - Also, remove the command_ prefix, and just put helper stuff in a separate package
+    - Would also be nice to bring the tests into the main root folder, to have touch.go, and touch_spec.rb next to each other
 - Ruby tests shouldn't test things with the local disk. Should just use the protocol itself
 - Verify integrity of the databases when reading from them
 - Allow for a custom config path (instead of .fly)
