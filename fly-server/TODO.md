@@ -1,5 +1,3 @@
-- TOUCH should create file if it does not exist!
-- Ruby TCP socket read timeouts (use read_nonblock, IO:select)
 - Continue working on more commands
     - MOVE
     - AUTH TOK / TOKEN
@@ -21,6 +19,8 @@
 - Should allow you to pass a single file instead of a dir (for quickly sharing a file)
 - Do we need a concept of guest user? (default anonymous)
   => could just be defined in the spec (servers need to always have a user named "guest" that has access to nothing by default)
+- Should be TLS by default (accept server cert like when connecting over SSH)
 - Extra commands
     - COPY (would require sending progress updates over stream)
     - SYNC
+- CLI client
