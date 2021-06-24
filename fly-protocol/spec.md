@@ -136,24 +136,47 @@ Response:
 
 OK (string)
 
-GETOPT
+CONNGET
 ---
 
-Retrieve the value of a connection option. Currently available options:
+Get the value of a connection option. Currently available options:
 
-- MaxChunkSize (integer): returns the maximum chunk size (in bytes) that the server will accept
 - ChunkSize (integer): returns the maximum chunk size (in bytes) used for this connection
 
 Arguments: 
 
 - Key (string)
 
-SETOPT
+CONNSET
 ---
 
 Sets the value of a connection option. Currently available options:
 
 - ChunkSize (integer): sets max chunk size (in bytes) for this connection. Will apply both to reads and writes.
+
+Arguments: 
+
+- Key (string)
+- Value (type depends on the key)
+
+CONFGET
+---
+
+Get the value of a server configuration option. Currently available options:
+
+- MaxChunkSize (integer): returns the maximum chunk size (in bytes) that the server will accept. The value is readonly.
+- DefaultChunkSize (integer): returns the default chunk size (in bytes) used for new connections.
+
+Arguments: 
+
+- Key (string)
+
+CONFSET
+---
+
+Sets the value of a server configuration options. Currently available options:
+
+- DefaultChunkSize (integer): set the default chunk size (in bytes) used for new connections.
 
 Arguments: 
 
