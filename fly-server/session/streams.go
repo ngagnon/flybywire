@@ -79,6 +79,7 @@ func (s *S) NewReadStream(path string) (id int, wirErr *wire.Error) {
 	}
 
 	s.streams[id] = stream
+	s.streamCount++
 	go handleReadStream(id, stream, s)
 
 	return id, nil
@@ -112,6 +113,7 @@ func (s *S) NewWriteStream(finalPath string) (id int, wireErr *wire.Error) {
 	}
 
 	s.streams[id] = stream
+	s.streamCount++
 	go handleWriteStream(id, stream, s)
 
 	return id, nil
@@ -129,9 +131,16 @@ func (s *S) CloseStream(id int) bool {
 	return true
 }
 
+func (s *S) NumStreams() int {
+	s.streamLock.RLock()
+	defer s.streamLock.RUnlock()
+	return s.streamCount
+}
+
 func (s *S) releaseStream(id int) {
 	s.streamLock.Lock()
 	s.streams[id] = nil
+	s.streamCount--
 	s.streamLock.Unlock()
 }
 
@@ -166,10 +175,7 @@ func handleReadStream(id int, s *readStream, session *S) {
 	session.waitGroup.Add(1)
 	defer session.waitGroup.Done()
 
-	// @TODO: use max chunk size sent by client
-	chunkSize := 16 * 1024
-	buf := make([]byte, chunkSize)
-
+	buf := make([]byte, session.ChunkSize)
 	tag := strconv.Itoa(id)
 
 	for {

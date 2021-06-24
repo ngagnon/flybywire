@@ -8,13 +8,16 @@ import (
 )
 
 type S struct {
-	terminate  chan struct{}
-	waitGroup  *sync.WaitGroup
-	done       chan struct{}
-	out        chan wire.Value
-	commands   chan *wire.Array
-	streams    [16]stream
-	streamLock sync.RWMutex
+	terminate   chan struct{}
+	waitGroup   *sync.WaitGroup
+	done        chan struct{}
+	out         chan wire.Value
+	commands    chan *wire.Array
+	streams     [16]stream
+	streamLock  sync.RWMutex
+	streamCount int
+
+	ChunkSize int
 }
 
 type CommandHandler func(cmd *wire.Array, s *S) (response wire.Value)
@@ -26,6 +29,7 @@ func Handle(conn net.Conn, cb CommandHandler) {
 		waitGroup: &sync.WaitGroup{},
 		out:       make(chan wire.Value, 5),
 		commands:  make(chan *wire.Array, 5),
+		ChunkSize: 16 * 1024,
 	}
 
 	go handleReads(conn, session)

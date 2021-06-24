@@ -1,3 +1,4 @@
+- Give priority to command responses in the session writer
 - Continue working on more commands
     - Chunk size negotiation
         - CONNGET/CONNSET of the connection chunk size
@@ -17,6 +18,7 @@
     - CONFGET/CONFSET (only admins can CONFSET)
         * auth token expiry
         * windows names (https://stackoverflow.com/questions/1976007/what-characters-are-forbidden-in-windows-and-linux-directory-names, case insensitive)
+- Fix the in-code TODOs
 - Most tests could use a refactoring. Also need to be beefed up to handle all cases (regular user, single user, unauth, ACPs, etc.). Should also test for error scenarios, such as file not found.
 - Ruby tests shouldn't test things with the local disk. Should just use the protocol itself
 - Verify integrity of the databases when reading from them

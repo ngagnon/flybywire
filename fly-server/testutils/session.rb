@@ -76,7 +76,13 @@ class Session < SessionIO
         arr = Wire::Array.new([name].concat(items))
         arr.put(@s)
 
-        get_next
+        loop do
+            v = get_next
+
+            if !(v.is_a? Wire::Frame)
+                return v
+            end
+        end
     end
 
     def cmd!(name, *items)
