@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"strconv"
 )
 
@@ -61,18 +62,36 @@ var Null = &null{}
 var ErrFormat = errors.New("Protocol error")
 var ErrIO = errors.New("I/O error")
 
-func ReadValue(r io.Reader) (Value, error) {
+type WireReader struct {
+	MaxBlobSize int
+
+	r *bufio.Reader
+}
+
+func NewReader(r io.Reader) *WireReader {
 	bufReader, ok := r.(*bufio.Reader)
 
 	if !ok {
 		bufReader = bufio.NewReader(r)
 	}
 
-	return readValue(bufReader, true)
+	return &WireReader{
+		MaxBlobSize: math.MaxInt64,
+		r:           bufReader,
+	}
 }
 
-func readValue(r *bufio.Reader, canBeTag bool) (Value, error) {
-	b, err := r.ReadByte()
+func (r *WireReader) Read() (Value, error) {
+	return readValue(r, true)
+}
+
+func ReadValue(r io.Reader) (Value, error) {
+	reader := NewReader(r)
+	return reader.Read()
+}
+
+func readValue(r *WireReader, canBeTag bool) (Value, error) {
+	b, err := r.r.ReadByte()
 
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrIO, err)
@@ -80,11 +99,11 @@ func readValue(r *bufio.Reader, canBeTag bool) (Value, error) {
 
 	switch b {
 	case '_':
-		return handleNull(r)
+		return handleNull(r.r)
 	case '#':
-		return handleBoolean(r)
+		return handleBoolean(r.r)
 	case '+':
-		return handleString(r)
+		return handleString(r.r)
 	case '@':
 		return handleTag(r, canBeTag)
 	case '*':
@@ -92,7 +111,7 @@ func readValue(r *bufio.Reader, canBeTag bool) (Value, error) {
 	case '$':
 		fallthrough
 	case ':':
-		size, err := readSize(r)
+		size, err := readSize(r.r)
 
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s", ErrFormat, err)
@@ -161,12 +180,12 @@ func handleString(r *bufio.Reader) (Value, error) {
 	return NewString(string(buf)), nil
 }
 
-func handleTag(r *bufio.Reader, canBeTag bool) (Value, error) {
+func handleTag(r *WireReader, canBeTag bool) (Value, error) {
 	if !canBeTag {
 		return nil, fmt.Errorf("%w: unexpected tag", ErrFormat)
 	}
 
-	buf, err := r.ReadBytes('\n')
+	buf, err := r.r.ReadBytes('\n')
 
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrIO, err)
@@ -182,7 +201,7 @@ func handleTag(r *bufio.Reader, canBeTag bool) (Value, error) {
 	return NewTaggedValue(val, string(buf)), nil
 }
 
-func handleArray(r *bufio.Reader, len int) (*Array, error) {
+func handleArray(r *WireReader, len int) (*Array, error) {
 	arr := &Array{
 		Values: make([]Value, len),
 	}
@@ -200,15 +219,19 @@ func handleArray(r *bufio.Reader, len int) (*Array, error) {
 	return arr, nil
 }
 
-func handleBlob(r *bufio.Reader, size int) (*Blob, error) {
+func handleBlob(r *WireReader, size int) (*Blob, error) {
+	if size > r.MaxBlobSize {
+		return nil, fmt.Errorf("%w: blobs cannot exceed %d in length", ErrFormat, r.MaxBlobSize)
+	}
+
 	buf := make([]byte, size)
-	_, err := io.ReadFull(r, buf)
+	_, err := io.ReadFull(r.r, buf)
 
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrIO, err)
 	}
 
-	b, err := r.ReadByte()
+	b, err := r.r.ReadByte()
 
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrIO, err)

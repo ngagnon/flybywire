@@ -23,6 +23,7 @@ type mode int
 const (
 	read mode = iota
 	write
+	copy
 )
 
 type frame struct {
@@ -42,6 +43,13 @@ type writeStream struct {
 	done      chan struct{}
 	finalPath string
 	file      *os.File
+}
+
+type copyStream struct {
+	cancel chan struct{}
+	done   chan struct{}
+	src    string
+	dst    string
 }
 
 type stream interface {
@@ -119,6 +127,30 @@ func (s *S) NewWriteStream(finalPath string) (id int, wireErr *wire.Error) {
 	return id, nil
 }
 
+func (s *S) NewCopyStream(src string, dst string) (id int, wireErr *wire.Error) {
+	s.streamLock.Lock()
+	defer s.streamLock.Unlock()
+
+	id, ok := nextStreamId(s.streams[:])
+
+	if !ok {
+		return 0, wire.NewError("TOOMANY", "Too many streams open")
+	}
+
+	stream := &copyStream{
+		cancel: make(chan struct{}, 2),
+		done:   make(chan struct{}),
+		src:    src,
+		dst:    dst,
+	}
+
+	s.streams[id] = stream
+	s.streamCount++
+	go handleCopyStream(id, stream, s)
+
+	return id, nil
+}
+
 func (s *S) CloseStream(id int) bool {
 	stream, ok := s.getStream(id)
 
@@ -175,7 +207,6 @@ func handleReadStream(id int, s *readStream, session *S) {
 	session.waitGroup.Add(1)
 	defer session.waitGroup.Done()
 
-	buf := make([]byte, session.ChunkSize)
 	tag := strconv.Itoa(id)
 
 	for {
@@ -187,6 +218,8 @@ func handleReadStream(id int, s *readStream, session *S) {
 		default:
 		}
 
+		// @TODO: reuse some of those to avoid allocations
+		buf := make([]byte, 32*1024)
 		n, err := s.file.Read(buf)
 
 		if err == io.EOF {
@@ -195,8 +228,8 @@ func handleReadStream(id int, s *readStream, session *S) {
 		}
 
 		if err != nil {
-			err := wire.NewError("IO", "Could not read chunk from file. Closing stream.")
-			session.dataOut <- wire.NewTaggedValue(err, tag)
+			wireErr := wire.NewError("IO", "Could not read chunk from file. Closing stream.")
+			session.dataOut <- wire.NewTaggedValue(wireErr, tag)
 			log.Debugf("Could not read from file: %v", err)
 			return
 		}
@@ -255,6 +288,72 @@ func handleWriteStream(id int, s *writeStream, session *S) {
 	}
 }
 
+func handleCopyStream(id int, s *copyStream, session *S) {
+	defer session.releaseStream(id)
+	defer close(s.done)
+
+	session.waitGroup.Add(1)
+	defer session.waitGroup.Done()
+
+	tag := strconv.Itoa(id)
+	src, err := os.Open(s.src)
+
+	if err != nil {
+		wireErr := wire.NewError("IO", "Could not open source file. Closing stream.")
+		session.dataOut <- wire.NewTaggedValue(wireErr, tag)
+		log.Debugf("Could not open file: %v", err)
+		return
+	}
+
+	defer src.Close()
+
+	tmp, err := os.CreateTemp("", "flytmp")
+
+	if err != nil {
+		wireErr := wire.NewError("IO", "Could not create temporary. Closing stream.")
+		session.dataOut <- wire.NewTaggedValue(wireErr, tag)
+		log.Debugf("Could not create temporary file: %v", err)
+		return
+	}
+
+	buf := make([]byte, 32*1024)
+
+	for {
+		select {
+		case <-session.done:
+			cancelCopyStream(tmp)
+			return
+		case <-s.cancel:
+			cancelCopyStream(tmp)
+			return
+		default:
+		}
+
+		written, err := io.CopyBuffer(tmp, io.LimitReader(src, int64(len(buf))), buf)
+
+		if written < int64(len(buf)) && err == nil {
+			tmp.Close()
+
+			if err = os.Rename(tmp.Name(), s.dst); err != nil {
+				wireErr := wire.NewError("IO", "Could not move temporary file to final destination. Closing stream.")
+				session.dataOut <- wire.NewTaggedValue(wireErr, tag)
+				log.Debugf("Could not move temporary file to final destination: %v", err)
+				return
+			}
+
+			session.dataOut <- wire.NewTaggedValue(wire.Null, tag)
+			return
+		}
+
+		if err != nil {
+			wireErr := wire.NewError("IO", "Could not copy chunk of data. Closing stream.")
+			session.dataOut <- wire.NewTaggedValue(wireErr, tag)
+			log.Debugf("Could not copy chunk: %v", err)
+			return
+		}
+	}
+}
+
 func handleTimeout(s *writeStream, session *S, tag string) {
 	cancelWriteStream(s)
 	err := wire.NewError("TIMEOUT", "Timed out due to inactivity")
@@ -265,8 +364,8 @@ func handleChunk(chunk []byte, tag string, s *writeStream, session *S, wd *watch
 	_, err := s.file.Write(chunk)
 
 	if err != nil {
-		err := wire.NewError("IO", "Could not write chunk to disk. Closing stream.")
-		session.dataOut <- wire.NewTaggedValue(err, tag)
+		wireErr := wire.NewError("IO", "Could not write chunk to disk. Closing stream.")
+		session.dataOut <- wire.NewTaggedValue(wireErr, tag)
 		log.Debugf("Could not write file to disk: %v", err)
 		cancelWriteStream(s)
 		return false
@@ -295,6 +394,11 @@ func finishWriteStream(s *writeStream, tag string, session *S) {
 	}
 }
 
+func cancelCopyStream(tmp *os.File) {
+	tmp.Close()
+	os.Remove(tmp.Name())
+}
+
 func newDataFrame(payload []byte) frame {
 	return frame{end: false, payload: payload}
 }
@@ -317,6 +421,15 @@ func (s *readStream) mode() mode {
 }
 
 func (s *readStream) close() {
+	s.cancel <- struct{}{}
+	<-s.done
+}
+
+func (s *copyStream) mode() mode {
+	return copy
+}
+
+func (s *copyStream) close() {
 	s.cancel <- struct{}{}
 	<-s.done
 }

@@ -1,9 +1,3 @@
-- Buffer size should be independent of chunk size. In fact,
-  since we're using buffered IO, chunk sizes shouldn't really 
-  matter, except for the minimal overhead of the length header. Therefore:
-    - We should just pick a chunk size and bake it into the spec (e.g. 32KB)
-    - We should get rid of CONNGET/CONNSET ChunkSize, and CONFGET MaxChunkSize
-- Reader and writer streams should use io.CopyN
 - Continue working on more commands
     - COPY
         - Returns a stream ID

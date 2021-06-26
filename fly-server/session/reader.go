@@ -17,7 +17,9 @@ func handleReads(conn net.Conn, s *S) {
 	s.waitGroup.Add(1)
 	defer s.waitGroup.Done()
 
-	reader := bufio.NewReader(conn)
+	bufReader := bufio.NewReader(conn)
+	reader := wire.NewReader(bufReader)
+	reader.MaxBlobSize = 32 * 1024
 
 	for {
 		select {
@@ -27,7 +29,7 @@ func handleReads(conn net.Conn, s *S) {
 		}
 
 		conn.SetReadDeadline(time.Now().Add(5 * time.Minute))
-		value, err := wire.ReadValue(reader)
+		value, err := reader.Read()
 
 		if errors.Is(err, wire.ErrFormat) {
 			protoErr := wire.NewError("PROTO", err.Error())

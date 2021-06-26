@@ -17,8 +17,6 @@ type S struct {
 	streams     [16]stream
 	streamLock  sync.RWMutex
 	streamCount int
-
-	ChunkSize int
 }
 
 type CommandHandler func(cmd *wire.Array, s *S) (response wire.Value)
@@ -31,7 +29,6 @@ func Handle(conn net.Conn, cb CommandHandler) {
 		dataOut:   make(chan wire.Value, 5),
 		cmdOut:    make(chan wire.Value, 5),
 		commands:  make(chan *wire.Array, 5),
-		ChunkSize: 16 * 1024,
 	}
 
 	go handleReads(conn, session)

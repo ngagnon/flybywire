@@ -1,7 +1,6 @@
 package wire
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
 	"testing"
@@ -9,8 +8,8 @@ import (
 
 func TestIOError(t *testing.T) {
 	buf := new(bytes.Buffer)
-	reader := bufio.NewReader(buf)
-	_, err := ReadValue(reader)
+	reader := NewReader(buf)
+	_, err := reader.Read()
 
 	if !errors.Is(err, ErrIO) {
 		t.Fatalf("Expected I/O error, got %v", err)
@@ -35,8 +34,8 @@ func TestCommandFrame(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	reader := bufio.NewReader(buf)
-	value, err := ReadValue(reader)
+	reader := NewReader(buf)
+	value, err := reader.Read()
 
 	if err != nil {
 		t.Fatal(err)
@@ -74,8 +73,8 @@ func TestTaggedBlob(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	reader := bufio.NewReader(buf)
-	value, err := ReadValue(reader)
+	reader := NewReader(buf)
+	value, err := reader.Read()
 
 	if err != nil {
 		t.Fatal(err)
@@ -102,6 +101,60 @@ func TestTaggedBlob(t *testing.T) {
 	}
 }
 
+func TestLargeBlob(t *testing.T) {
+	maxSize := 32 * 1024
+
+	buf := new(bytes.Buffer)
+	payload := make([]byte, maxSize)
+
+	for i := 0; i < maxSize; i++ {
+		payload[i] = 'x'
+	}
+
+	blob := NewBlob(payload)
+
+	if err := NewTaggedValue(blob, "1").WriteTo(buf); err != nil {
+		t.Fatal(err)
+	}
+
+	reader := NewReader(buf)
+	reader.MaxBlobSize = maxSize
+	value, err := reader.Read()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tagged, ok := value.(*TaggedValue)
+
+	if !ok {
+		t.Fatalf("Expected value to be tag, was %s", value.Name())
+	}
+
+	blob, ok = tagged.Value.(*Blob)
+
+	if !ok {
+		t.Fatalf("Expected payload to be a blob, was %s", tagged.Value.Name())
+	}
+
+	buf = new(bytes.Buffer)
+	payload = append(payload, 'x')
+	blob = NewBlob(payload)
+
+	if err := NewTaggedValue(blob, "1").WriteTo(buf); err != nil {
+		t.Fatal(err)
+	}
+
+	reader = NewReader(buf)
+	reader.MaxBlobSize = maxSize
+	_, err = reader.Read()
+	t.Logf("Payload size: %d", len(payload))
+
+	if !errors.Is(err, ErrFormat) {
+		t.Fatalf("Expected format error, got %v", err)
+	}
+}
+
 func TestTaggedNull(t *testing.T) {
 	buf := new(bytes.Buffer)
 
@@ -109,8 +162,8 @@ func TestTaggedNull(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	reader := bufio.NewReader(buf)
-	value, err := ReadValue(reader)
+	reader := NewReader(buf)
+	value, err := reader.Read()
 
 	if err != nil {
 		t.Fatal(err)

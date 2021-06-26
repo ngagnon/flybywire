@@ -127,8 +127,13 @@ class Session < SessionIO
         resp = cmd!('STREAM', 'W', name)
         id = resp.value
 
-        put_stream(id)
-        put_blob(contents)
+        while contents.length > 0
+            chunk = contents.slice(0, 32*1024)
+            contents = contents[32*1024..] || ''
+
+            put_stream(id)
+            put_blob(chunk)
+        end
 
         put_stream(id)
         put_null

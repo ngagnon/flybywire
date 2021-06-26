@@ -136,53 +136,6 @@ Response:
 
 OK (string)
 
-CONNGET
----
-
-Get the value of a connection option. Currently available options:
-
-- ChunkSize (integer): returns the maximum chunk size (in bytes) used for this connection
-
-Arguments: 
-
-- Key (string)
-
-CONNSET
----
-
-Sets the value of a connection option. Currently available options:
-
-- ChunkSize (integer): sets max chunk size (in bytes) for this connection. Will apply both to reads and writes.
-
-Arguments: 
-
-- Key (string)
-- Value (type depends on the key)
-
-CONFGET
----
-
-Get the value of a server configuration option. Currently available options:
-
-- MaxChunkSize (integer): returns the maximum chunk size (in bytes) that the server will accept. The value is readonly.
-- DefaultChunkSize (integer): returns the default chunk size (in bytes) used for new connections.
-
-Arguments: 
-
-- Key (string)
-
-CONFSET
----
-
-Sets the value of a server configuration options. Currently available options:
-
-- DefaultChunkSize (integer): set the default chunk size (in bytes) used for new connections.
-
-Arguments: 
-
-- Key (string)
-- Value (type depends on the key)
-
 File Management
 ===
 
@@ -224,20 +177,23 @@ original until you're done writing it.
 When opening a file for reading, the server will immediately start
 sending chunks to the client via chunk responses:
 
->streamID\n
+@streamID\n
 $length\n
 blob\n
 
-The ">" message type is a special stream message that wraps
+The "@" message type is a special stream message that wraps
 another value, usually a blob (or an error).
 
 When opening the file for writing, the client is expected to
 send chunks to the server in the same format.
 
+The client and server should only send chunks of up to 32KB
+in size.
+
 If an error occurs and the transfer must be stopped, an error
 will be returned by the server:
 
->streamID\n
+@streamID\n
 -ERR Error message\n
 
 Response:
@@ -299,6 +255,9 @@ COPY
 Usage: COPY from to
 
 Copies a file or folder (recursively).
+
+Returns a stream ID (integer). The server will send a null tagged with that
+stream ID once the copy is completed.
 
 DEL
 ---
