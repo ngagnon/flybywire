@@ -209,6 +209,12 @@ func handleReadStream(id int, s *readStream, session *S) {
 
 	tag := strconv.Itoa(id)
 
+	// While one buffer is being written out to the network, we'll start reading into the other buffer
+	buf := make([][]byte, 2)
+	buf[0] = make([]byte, 32*1024)
+	buf[1] = make([]byte, 32*1024)
+	cur := 0
+
 	for {
 		select {
 		case <-session.done:
@@ -218,9 +224,8 @@ func handleReadStream(id int, s *readStream, session *S) {
 		default:
 		}
 
-		// @TODO: reuse some of those to avoid allocations
-		buf := make([]byte, 32*1024)
-		n, err := s.file.Read(buf)
+		cur = (cur + 1) % 2
+		n, err := s.file.Read(buf[cur])
 
 		if err == io.EOF {
 			session.dataOut <- wire.NewTaggedValue(wire.Null, tag)
@@ -228,13 +233,13 @@ func handleReadStream(id int, s *readStream, session *S) {
 		}
 
 		if err != nil {
+			log.Debugf("Could not read from file: %v", err)
 			wireErr := wire.NewError("IO", "Could not read chunk from file. Closing stream.")
 			session.dataOut <- wire.NewTaggedValue(wireErr, tag)
-			log.Debugf("Could not read from file: %v", err)
 			return
 		}
 
-		blob := wire.NewBlob(buf[0:n])
+		blob := wire.NewBlob(buf[cur][0:n])
 		session.dataOut <- wire.NewTaggedValue(blob, tag)
 	}
 }
@@ -299,9 +304,9 @@ func handleCopyStream(id int, s *copyStream, session *S) {
 	src, err := os.Open(s.src)
 
 	if err != nil {
+		log.Debugf("Could not open file: %v", err)
 		wireErr := wire.NewError("IO", "Could not open source file. Closing stream.")
 		session.dataOut <- wire.NewTaggedValue(wireErr, tag)
-		log.Debugf("Could not open file: %v", err)
 		return
 	}
 
@@ -310,9 +315,9 @@ func handleCopyStream(id int, s *copyStream, session *S) {
 	tmp, err := os.CreateTemp("", "flytmp")
 
 	if err != nil {
+		log.Debugf("Could not create temporary file: %v", err)
 		wireErr := wire.NewError("IO", "Could not create temporary. Closing stream.")
 		session.dataOut <- wire.NewTaggedValue(wireErr, tag)
-		log.Debugf("Could not create temporary file: %v", err)
 		return
 	}
 
@@ -335,9 +340,9 @@ func handleCopyStream(id int, s *copyStream, session *S) {
 			tmp.Close()
 
 			if err = os.Rename(tmp.Name(), s.dst); err != nil {
+				log.Debugf("Could not move temporary file to final destination: %v", err)
 				wireErr := wire.NewError("IO", "Could not move temporary file to final destination. Closing stream.")
 				session.dataOut <- wire.NewTaggedValue(wireErr, tag)
-				log.Debugf("Could not move temporary file to final destination: %v", err)
 				return
 			}
 
@@ -346,9 +351,9 @@ func handleCopyStream(id int, s *copyStream, session *S) {
 		}
 
 		if err != nil {
+			log.Debugf("Could not copy chunk: %v", err)
 			wireErr := wire.NewError("IO", "Could not copy chunk of data. Closing stream.")
 			session.dataOut <- wire.NewTaggedValue(wireErr, tag)
-			log.Debugf("Could not copy chunk: %v", err)
 			return
 		}
 	}
@@ -364,10 +369,10 @@ func handleChunk(chunk []byte, tag string, s *writeStream, session *S, wd *watch
 	_, err := s.file.Write(chunk)
 
 	if err != nil {
-		wireErr := wire.NewError("IO", "Could not write chunk to disk. Closing stream.")
-		session.dataOut <- wire.NewTaggedValue(wireErr, tag)
 		log.Debugf("Could not write file to disk: %v", err)
 		cancelWriteStream(s)
+		wireErr := wire.NewError("IO", "Could not write chunk to disk. Closing stream.")
+		session.dataOut <- wire.NewTaggedValue(wireErr, tag)
 		return false
 	}
 
@@ -388,9 +393,9 @@ func finishWriteStream(s *writeStream, tag string, session *S) {
 	err := os.Rename(tmpPath, s.finalPath)
 
 	if err != nil {
+		log.Errorf("Could not write file to disk: %v", err)
 		err := wire.NewError("IO", "Could not write file to disk.")
 		session.dataOut <- wire.NewTaggedValue(err, tag)
-		log.Errorf("Could not write file to disk: %v", err)
 	}
 }
 

@@ -26,7 +26,7 @@ func Handle(conn net.Conn, cb CommandHandler) {
 		terminate: make(chan struct{}, 3),
 		done:      make(chan struct{}),
 		waitGroup: &sync.WaitGroup{},
-		dataOut:   make(chan wire.Value, 5),
+		dataOut:   make(chan wire.Value), // must be blocking! (handleReadStream assumes this)
 		cmdOut:    make(chan wire.Value, 5),
 		commands:  make(chan *wire.Array, 5),
 	}
