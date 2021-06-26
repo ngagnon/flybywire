@@ -4,15 +4,16 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"io"
+	"net"
 	"strconv"
+	"time"
 
 	"github.com/ngagnon/fly-server/wire"
 )
 
 var outMarker = wire.NewString("OUT")
 
-func handleReads(conn io.Reader, s *S) {
+func handleReads(conn net.Conn, s *S) {
 	s.waitGroup.Add(1)
 	defer s.waitGroup.Done()
 
@@ -25,6 +26,7 @@ func handleReads(conn io.Reader, s *S) {
 		default:
 		}
 
+		conn.SetReadDeadline(time.Now().Add(5 * time.Minute))
 		value, err := wire.ReadValue(reader)
 
 		if errors.Is(err, wire.ErrFormat) {

@@ -1,6 +1,3 @@
-- Connection idle timeout of 5 minutes (no commands have been received)
-- Timeout on socket reads too (SetReadDeadline)
-- Timeouts should delete write stream's temp files!
 - Buffer size should be independent of chunk size. In fact,
   since we're using buffered IO, chunk sizes shouldn't really 
   matter, except for the minimal overhead of the length header. Therefore:
