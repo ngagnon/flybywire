@@ -1,14 +1,17 @@
-- Give priority to command responses in the session writer
+- Connection idle timeout of 5 minutes (no commands have been received)
+- Timeout on socket reads too (SetReadDeadline)
+- Timeouts should delete write stream's temp files!
+- Buffer size should be independent of chunk size. In fact,
+  since we're using buffered IO, chunk sizes shouldn't really 
+  matter, except for the minimal overhead of the length header. Therefore:
+    - We should just pick a chunk size and bake it into the spec (e.g. 32KB)
+    - We should get rid of CONNGET/CONNSET ChunkSize, and CONFGET MaxChunkSize
+- Reader and writer streams should use io.CopyN
 - Continue working on more commands
-    - Chunk size negotiation
-        - CONNGET/CONNSET of the connection chunk size
-        - For read streams, use the chunk size as buffer size for reading
-        - For write streams, drop any chunk (without allocating!) that exceeds the connection chunk size
-        - CONFGET max chunk size (16MB)
-        - CONFGET/CONFSET default chunk size (16KB)
     - COPY
         - Returns a stream ID
         - Server sends null on that stream ID once it's done copying the file(s)
+        - Closing the stream cancels the copy
     - CHROOT
         - resolveVirtualPath will need to know about the user's chroot
     - LISTACP

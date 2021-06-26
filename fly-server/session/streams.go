@@ -190,19 +190,19 @@ func handleReadStream(id int, s *readStream, session *S) {
 		n, err := s.file.Read(buf)
 
 		if err == io.EOF {
-			session.out <- wire.NewTaggedValue(wire.Null, tag)
+			session.dataOut <- wire.NewTaggedValue(wire.Null, tag)
 			return
 		}
 
 		if err != nil {
 			err := wire.NewError("IO", "Could not read chunk from file. Closing stream.")
-			session.out <- wire.NewTaggedValue(err, tag)
+			session.dataOut <- wire.NewTaggedValue(err, tag)
 			log.Debugf("Could not read from file: %v", err)
 			return
 		}
 
 		blob := wire.NewBlob(buf[0:n])
-		session.out <- wire.NewTaggedValue(blob, tag)
+		session.dataOut <- wire.NewTaggedValue(blob, tag)
 	}
 }
 
@@ -258,7 +258,7 @@ func handleWriteStream(id int, s *writeStream, session *S) {
 func handleTimeout(s *writeStream, session *S, tag string) {
 	cancelWriteStream(s)
 	err := wire.NewError("TIMEOUT", "Timed out due to inactivity")
-	session.out <- wire.NewTaggedValue(err, tag)
+	session.dataOut <- wire.NewTaggedValue(err, tag)
 }
 
 func handleChunk(chunk []byte, tag string, s *writeStream, session *S, wd *watchdog) bool {
@@ -266,7 +266,7 @@ func handleChunk(chunk []byte, tag string, s *writeStream, session *S, wd *watch
 
 	if err != nil {
 		err := wire.NewError("IO", "Could not write chunk to disk. Closing stream.")
-		session.out <- wire.NewTaggedValue(err, tag)
+		session.dataOut <- wire.NewTaggedValue(err, tag)
 		log.Debugf("Could not write file to disk: %v", err)
 		cancelWriteStream(s)
 		return false
@@ -290,7 +290,7 @@ func finishWriteStream(s *writeStream, tag string, session *S) {
 
 	if err != nil {
 		err := wire.NewError("IO", "Could not write file to disk.")
-		session.out <- wire.NewTaggedValue(err, tag)
+		session.dataOut <- wire.NewTaggedValue(err, tag)
 		log.Errorf("Could not write file to disk: %v", err)
 	}
 }

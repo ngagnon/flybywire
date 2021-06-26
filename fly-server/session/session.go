@@ -11,7 +11,8 @@ type S struct {
 	terminate   chan struct{}
 	waitGroup   *sync.WaitGroup
 	done        chan struct{}
-	out         chan wire.Value
+	dataOut     chan wire.Value
+	cmdOut      chan wire.Value
 	commands    chan *wire.Array
 	streams     [16]stream
 	streamLock  sync.RWMutex
@@ -27,7 +28,8 @@ func Handle(conn net.Conn, cb CommandHandler) {
 		terminate: make(chan struct{}, 3),
 		done:      make(chan struct{}),
 		waitGroup: &sync.WaitGroup{},
-		out:       make(chan wire.Value, 5),
+		dataOut:   make(chan wire.Value, 5),
+		cmdOut:    make(chan wire.Value, 5),
 		commands:  make(chan *wire.Array, 5),
 		ChunkSize: 16 * 1024,
 	}

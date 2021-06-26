@@ -22,17 +22,6 @@ module TestSuite
         @@single_user = Session.new(port: 6701, label: 'single user')
 
         $dir = Dir.mktmpdir 'fly'
-        
-        Faker::Config.random = Random.new(42)
-        big_file_contents = Faker::Lorem.paragraphs(number: 10, supplemental: true).join("\n\n") * 100000
-        puts "big file len: #{big_file_contents.length}"
-
-        big_file_path = File.join($dir, 'big-file.txt')
-        File.write(big_file_path, big_file_contents)
-
-        big_file_path = File.join(@@single_user_dir, 'big-file.txt')
-        File.write(big_file_path, big_file_contents)
-
         @@server = Server.new $dir
 
         session = Session.new

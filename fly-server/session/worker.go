@@ -22,14 +22,14 @@ func runCommands(cb CommandHandler, s *S) {
 			return
 		case arr := <-s.commands:
 			if arr.Values[0] == outMarker {
-				s.out <- arr.Values[1]
+				s.cmdOut <- arr.Values[1]
 			} else if commandIsQuit(arr.Values[0]) {
-				s.out <- wire.OK
-				close(s.out)
+				s.cmdOut <- wire.OK
+				close(s.cmdOut) // drain the pending writes
 				return
 			} else {
 				response := cb(arr, s)
-				s.out <- response
+				s.cmdOut <- response
 			}
 		}
 	}
