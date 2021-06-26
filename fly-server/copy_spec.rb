@@ -1,12 +1,22 @@
 require 'securerandom'
 
 RSpec.describe 'COPY' do
-    context 'file' do
-        context 'authorized' do
-            ['admin', 'regular user', 'single user'].each do |persona|
-                context "as #{persona}" do
+    context 'unauthorized' do
+        it 'returns DENIED' do
+            resp = unauth.cmd('COPY', 'copy-src.txt', 'copy-dst.txt')
+            expect(resp).to be_error('DENIED')
+        end
+    end
+
+    context 'authorized' do
+        ['admin', 'regular user', 'single user'].each do |persona|
+            context "as #{persona}" do
+                before(:all) do
+                    @session = as(persona)
+                end
+
+                context 'file' do
                     before(:all) do
-                        @session = as(persona)
                         @src = "copy-from-#{SecureRandom.hex}.txt"
                         @dst = "copy-to-#{SecureRandom.hex}.txt"
                         @data = "hello\nworld\ncopy\n" * 31 * 1024
@@ -36,43 +46,19 @@ RSpec.describe 'COPY' do
                         expect(contents == @data).to be(true)
                     end
                 end
-            end
-        end
 
-        context 'unauthorized' do
-            it 'returns DENIED' do
-                resp = unauth.cmd('COPY', 'copy-src.txt', 'copy-dst.txt')
-                expect(resp).to be_error('DENIED')
-            end
-        end
-    end
+                context 'folder' do
+                    it 'returns ARG' do
+                        src = "copy-from-#{SecureRandom.hex}"
+                        @session.cmd!('MKDIR', src)
+                        @session.write_file("#{src}/hello.txt", "hello\mworld\ncopy\nfolder")
+                        dst = "copy-to-#{SecureRandom.hex}"
 
-=begin
-    context 'folder' do
-        ['admin', 'regular user', 'single user'].each do |persona|
-            context "as #{persona}" do
-                before(:all) do
-                    @session = as(persona)
-
-                    @folder_name = "del-#{SecureRandom.hex}"
-                    @session.cmd!('MKDIR', @folder_name)
-
-                    @file_name = @folder_name + "/file.txt"
-                    @session.write_file(@file_name, "hello\nworld\n")
-
-                    @resp = @session.cmd('DEL', @folder_name)
-                end
-
-                it 'returns OK' do
-                    expect(@resp).to be_ok
-                end
-
-                it 'deletes folder' do
-                    resp = @session.cmd('LIST', "/" + @folder_name)
-                    expect(resp).to be_error('NOTFOUND')
+                        resp = @session.cmd('COPY', src, dst)
+                        expect(resp).to be_error('ARG')
+                    end
                 end
             end
         end
     end
-=end
 end

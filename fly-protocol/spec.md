@@ -254,7 +254,7 @@ COPY
 
 Usage: COPY from to
 
-Copies a file or folder (recursively).
+Copies a file from the 'from' path to the 'to' path
 
 Returns a stream ID (integer). The server will send a null tagged with that
 stream ID once the copy is completed.

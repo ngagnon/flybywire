@@ -1,14 +1,13 @@
 - Continue working on more commands
-    - COPY
-        - Returns a stream ID
-        - Server sends null on that stream ID once it's done copying the file(s)
-        - Closing the stream cancels the copy
     - CHROOT
         - resolveVirtualPath will need to know about the user's chroot
-    - LISTACP
-    - ADDACP
-    - MODACP
-    - RMACP
+    - ACPs:
+        - Inspired by S3, etc.
+        - LIST/ADD/MOD/RM
+        - Algorithm (in that order)
+            * If there's an explicit deny ACP, access is denied
+            * If there's an explicit allow ACP, access is allowed
+            * If there's no ACP, access is denied
     - CONFGET/CONFSET (only admins can CONFSET)
         * auth token expiry
         * windows names (https://stackoverflow.com/questions/1976007/what-characters-are-forbidden-in-windows-and-linux-directory-names, case insensitive)

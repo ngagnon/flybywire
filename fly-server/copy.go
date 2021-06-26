@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+	"os"
 	"strings"
 
 	"github.com/ngagnon/fly-server/wire"
@@ -37,10 +39,25 @@ func handleCopy(args []wire.Value, s *sessionInfo) wire.Value {
 		return wire.NewError("NOTFOUND", "No such file or directory")
 	}
 
-	id, err := s.session.NewCopyStream(src, dst)
+	info, err := os.Stat(src)
+
+	if errors.Is(err, os.ErrNotExist) {
+		return wire.NewError("NOTFOUND", "No such file or directory")
+	}
 
 	if err != nil {
-		return err
+		// @TODO: debug log?
+		return wire.NewError("ERROR", "An unexpected error occurred")
+	}
+
+	if !info.Mode().IsRegular() {
+		return wire.NewError("ARG", "Source should be a regular file")
+	}
+
+	id, wireErr := s.session.NewCopyStream(src, dst)
+
+	if err != nil {
+		return wireErr
 	}
 
 	return wire.NewInteger(id)
