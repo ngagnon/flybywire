@@ -25,9 +25,9 @@ func handleDel(args []wire.Value, s *sessionInfo) wire.Value {
 		return wire.NewError("DENIED", "Access denied")
 	}
 
-	realPath := resolveVirtualPath(vPath)
+	realPath, ok := resolveVirtualPath(vPath, s.user)
 
-	if isReservedPath(realPath) {
+	if !ok {
 		return wire.NewError("NOTFOUND", "No such file or directory")
 	}
 

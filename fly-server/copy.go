@@ -26,17 +26,17 @@ func handleCopy(args []wire.Value, s *sessionInfo) wire.Value {
 	}
 
 	srcRaw.Value = "/" + strings.Trim(srcRaw.Value, "/")
-	src := resolveVirtualPath(srcRaw.Value)
+	src, srcOk := resolveVirtualPath(srcRaw.Value, s.user)
 
 	dstRaw.Value = "/" + strings.Trim(dstRaw.Value, "/")
-	dst := resolveVirtualPath(dstRaw.Value)
+	dst, dstOk := resolveVirtualPath(dstRaw.Value, s.user)
+
+	if !srcOk || !dstOk {
+		return wire.NewError("NOTFOUND", "No such file or directory")
+	}
 
 	if !checkAuth(s, srcRaw.Value, true) || !checkAuth(s, dstRaw.Value, true) {
 		return wire.NewError("DENIED", "Access denied")
-	}
-
-	if isReservedPath(src) || isReservedPath(dst) {
-		return wire.NewError("NOTFOUND", "No such file or directory")
 	}
 
 	info, err := os.Stat(src)

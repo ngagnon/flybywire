@@ -1,6 +1,4 @@
 - Continue working on more commands
-    - CHROOT
-        - resolveVirtualPath will need to know about the user's chroot
     - ACPs:
         - Inspired by S3, etc.
         - LIST/ADD/MOD/RM

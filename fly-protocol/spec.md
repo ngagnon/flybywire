@@ -83,6 +83,8 @@ representing the command name (case insensitive).
 
 Then, the server will respond with some value, depending on the command.
 
+N.B. paths passed to Fly commands cannot contain . or .. segments!
+
 Connection Management
 ===
 
@@ -382,12 +384,14 @@ Arguments:
 CHROOT
 ---
 
-Sets a chroot for a user. If path is NULL, then the user isn't chroot'ed.
+Sets a chroot for a user. If path is an empty string, then the user isn't chroot'ed.
+
+The path should be an absolute virtual path, not a physical path. If the Fly servers' root directory is /home/fly, then use a chroot like /bob, not /home/fly/bob
 
 Arguments:
 
 - Username (string)
-- Path (string or null)
+- Path (string)
 
 Access Control
 ===

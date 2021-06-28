@@ -418,6 +418,8 @@ func (db *Handle) writeAccessPolicies() {
 
 		sanitizePaths(&rule)
 
+		// MySuperRule,ALLOW,R,user1:user2,/some/path/1:/some/path/2
+
 		records[i] = []string{
 			rule.Name,
 			userList,

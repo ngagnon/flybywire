@@ -38,6 +38,7 @@ var commandHandlers = map[string]commandHandler{
 	"ADDUSER":  handleAddUser,
 	"SETPWD":   handleSetpwd,
 	"SETADM":   handleSetadm,
+	"CHROOT":   handleChroot,
 	"RMUSER":   handleRmuser,
 	"SHOWUSER": handleShowUser,
 	"STREAM":   handleStream,
