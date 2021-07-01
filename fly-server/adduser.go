@@ -30,6 +30,10 @@ func handleAddUser(args []wire.Value, s *sessionInfo) wire.Value {
 		return wire.NewError("ARG", "Password should be a string, got %s", args[1].Name())
 	}
 
+	if len(password.Value) == 0 {
+		return wire.NewError("ARG", "Password cannot be empty")
+	}
+
 	if len(username.Value) < 1 {
 		return wire.NewError("ARG", "Minimum username length is 1")
 	}

@@ -21,6 +21,7 @@
 - Allow for a custom config path (instead of .fly)
 - CONFGET/CONFSET (only admins can CONFSET)
     * auth token expiry
+    * minimum password length
     * windows names (https://stackoverflow.com/questions/1976007/what-characters-are-forbidden-in-windows-and-linux-directory-names, case insensitive)
 - Do we need a concept of guest user? (default anonymous)
   => could just be defined in the spec (servers need to always have a user named "guest" that has access to nothing by default)

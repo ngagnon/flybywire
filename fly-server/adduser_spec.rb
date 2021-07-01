@@ -17,6 +17,12 @@ RSpec.describe 'ADDUSER' do
             expect(resp['chroot'].value).to eq('')
             expect(resp['admin'].value).to be(false)
         end
+
+        it 'does not allow empty password' do
+            username = Username.get_next
+            resp = admin.cmd('ADDUSER', username, '')
+            expect(resp).to be_error('ARG')
+        end
     end
 
     ['unauthenticated', 'regular user'].each do |persona|

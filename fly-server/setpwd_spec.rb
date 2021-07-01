@@ -1,4 +1,3 @@
-# @TODO: password cannot be empty + minimum password length?
 RSpec.describe 'SETPWD' do
     context 'admin' do
         before(:all) do
@@ -15,6 +14,11 @@ RSpec.describe 'SETPWD' do
             s = Session.new
             s.cmd!('AUTH', 'PWD', @username, 'newpassword')
             s.close
+        end
+
+        it 'does not allow empty password' do
+            resp = admin.cmd('SETPWD', @username, '')
+            expect(resp).to be_error('ARG')
         end
     end
 
@@ -35,6 +39,11 @@ RSpec.describe 'SETPWD' do
 
             it 'updates password' do
                 regular_user.cmd!('AUTH', 'PWD', 'joe', 'newpassword')
+            end
+
+            it 'does not allow empty password' do
+                resp = regular_user.cmd('SETPWD', 'joe', '')
+                expect(resp).to be_error('ARG')
             end
         end
 
