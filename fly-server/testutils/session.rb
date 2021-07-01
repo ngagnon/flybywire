@@ -108,7 +108,7 @@ class Session < SessionIO
             end
 
             if resp.id != id
-                raise "unexpected frame id #{id}"
+                raise "unexpected frame id #{resp.id}"
             end
 
             if resp.payload.is_a? Wire::Null

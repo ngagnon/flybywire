@@ -81,7 +81,6 @@ RSpec.describe 'MOVE' do
     end
 
     context 'unauthorized' do
-        # @TODO: regular user with ACP rule preventing them from accessing
         context 'as unauthenticated' do
             it 'returns DENIED' do
                 @session = unauth

@@ -57,7 +57,6 @@ type stream interface {
 	mode() mode
 }
 
-/* @TODO: check that the file exists */
 func (s *S) NewReadStream(path string) (id int, wirErr *wire.Error) {
 	file, err := os.Open(path)
 
