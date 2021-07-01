@@ -83,8 +83,6 @@ representing the command name (case insensitive).
 
 Then, the server will respond with some value, depending on the command.
 
-N.B. paths passed to Fly commands cannot contain . or .. segments!
-
 Connection Management
 ===
 
@@ -140,6 +138,10 @@ OK (string)
 
 File Management
 ===
+
+File transfer and management commands.
+
+These commands will not accept paths with . or .. segments.
 
 LIST
 ---
@@ -395,6 +397,18 @@ Arguments:
 
 Access Control
 ===
+
+Access control in Fly is very similar to cloud services such as S3.
+
+You create access control policies in the form of:
+
+- Allow "bob" to read from "/home/bob"
+- Deny "alice" to write in "/common"
+
+The policies apply to any file or folder that's a descendant of the
+specified path. In other words, in the first example, bob would be allowed
+to read from any file or folder that starts with /home/bob, including
+/home/bob.
 
 LISTACP
 ---

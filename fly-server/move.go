@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	log "github.com/ngagnon/fly-server/logging"
 	"github.com/ngagnon/fly-server/vfs"
 	"github.com/ngagnon/fly-server/wire"
 )
@@ -47,7 +48,7 @@ func handleMove(args []wire.Value, s *sessionInfo) wire.Value {
 	}
 
 	if err != nil {
-		// @TODO: debug log
+		log.Debugf("Could not rename file or folder: %v", err)
 		return wire.NewError("ERR", "Unexpected error occurred")
 	}
 

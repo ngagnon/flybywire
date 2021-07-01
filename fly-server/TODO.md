@@ -1,6 +1,3 @@
-- ACPs:
-    - Spec: inspired by S3, etc.
-- ADDUSER shouldn't allow you to use existing username
 - Fix the in-code TODOs
 - Should be TLS by default (accept server cert like when connecting over SSH)
     - Disabled with -notls option
@@ -27,9 +24,14 @@
     * windows names (https://stackoverflow.com/questions/1976007/what-characters-are-forbidden-in-windows-and-linux-directory-names, case insensitive)
 - Do we need a concept of guest user? (default anonymous)
   => could just be defined in the spec (servers need to always have a user named "guest" that has access to nothing by default)
-- Put vfs & auth helpers into a separate package?
 - Allow you to pass a single file instead of a dir? (for quickly sharing a file)
+- Client-cert TLS authentication
 - Extra commands
     - SYNC
     - COPY progress report
     - ACP groups
+- fly-on-s3?
+- User groups
+- Probably allow virtual folders to be created via the wire,
+to "mount" shared folders under a user's home folder let's say
+

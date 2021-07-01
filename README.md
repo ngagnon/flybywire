@@ -9,8 +9,6 @@ Its main goal is to fix some of the shortcomings of the FTP protocol
 - No way to sync folder structure efficiently
 - Server shouldn't have to manage the client's current working directory
 
-@TODO: fly-on-s3?
-
 Protocol
 ===
 
@@ -39,16 +37,7 @@ give each user full access to the folder with their name.
 When evaluating the ACLs on a file or folder, the least permissive ACL
 is used?
 
-@TODO: probably allow virtual folders to be created via the wire,
-to "mount" shared folders under a user's home folder let's say
-
 The default port number is 6767.
-
-@TODO: should a different port number be specified for TLS?
-=> actually, should use TLS by default with a self-signed certificate,
-with a prompt to add to trust store on the client side, like SSH
-@TODO: might be useful to allow key-based authentication, like SSH
-(client-cert TLS auth)
 
 Server
 ===
@@ -60,6 +49,14 @@ have full read/write access inside it.
 
 Users and ACL rules are stored directly inside the root dir by default,
 under a folder named .fly (invisible to clients).
+
+The server responds to port 6767 by default. It encrypts connections
+with TLS by default
+
+Options:
+
+-port: change the port number
+-notls: disables TLS
 
 
 

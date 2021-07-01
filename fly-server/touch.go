@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/ngagnon/fly-server/logging"
 	"github.com/ngagnon/fly-server/vfs"
 	"github.com/ngagnon/fly-server/wire"
 )
@@ -44,7 +45,7 @@ func handleTouch(args []wire.Value, s *sessionInfo) wire.Value {
 		}
 
 		if err != nil {
-			// @TODO: debug log
+			log.Debugf("Could not create file: %v", err)
 			return wire.NewError("ERR", "Unexpected error occurred")
 		}
 
@@ -52,7 +53,7 @@ func handleTouch(args []wire.Value, s *sessionInfo) wire.Value {
 	}
 
 	if err != nil {
-		// @TODO: debug log
+		log.Debugf("Could not change file modification time: %v", err)
 		return wire.NewError("ERR", "Unexpected error occurred")
 	}
 

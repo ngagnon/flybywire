@@ -66,7 +66,7 @@ func (s *S) NewReadStream(path string) (id int, wirErr *wire.Error) {
 	}
 
 	if err != nil {
-		// @TODO: debug log
+		log.Debugf("Could not open file for reading: %v", err)
 		return 0, wire.NewError("ERR", "Unexpected error occurred")
 	}
 
@@ -98,7 +98,7 @@ func (s *S) NewWriteStream(finalPath string) (id int, wireErr *wire.Error) {
 	file, err := os.CreateTemp("", "flytmp")
 
 	if err != nil {
-		// @TODO: debug log
+		log.Debugf("Could not create temporary directory: %v", err)
 		return 0, wire.NewError("ERR", "Unexpected error occurred")
 	}
 

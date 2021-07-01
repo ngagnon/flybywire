@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ngagnon/fly-server/crypto"
+	log "github.com/ngagnon/fly-server/logging"
 	"github.com/ngagnon/fly-server/wire"
 )
 
@@ -32,7 +33,7 @@ func handleToken(args []wire.Value, s *sessionInfo) wire.Value {
 	encrypted, err := crypto.AesEncrypt(plaintext, tokenKey)
 
 	if err != nil {
-		// @TODO: debug log
+		log.Debugf("Could not AES encrypt token: %v", err)
 		return wire.NewError("ERROR", "An unexpected error occurred")
 	}
 

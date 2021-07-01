@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	log "github.com/ngagnon/fly-server/logging"
 	"github.com/ngagnon/fly-server/vfs"
 	"github.com/ngagnon/fly-server/wire"
 )
@@ -32,7 +33,7 @@ func handleMkdir(args []wire.Value, s *sessionInfo) wire.Value {
 	}
 
 	if err := os.MkdirAll(realPath, 0755); err != nil {
-		// @TODO: debug log
+		log.Debugf("Could not create folder: %v", err)
 		return wire.NewError("ERR", "Unexpected error occurred")
 	}
 

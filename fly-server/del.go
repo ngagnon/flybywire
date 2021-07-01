@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	log "github.com/ngagnon/fly-server/logging"
 	"github.com/ngagnon/fly-server/vfs"
 	"github.com/ngagnon/fly-server/wire"
 )
@@ -42,7 +43,7 @@ func handleDel(args []wire.Value, s *sessionInfo) wire.Value {
 	}
 
 	if err != nil {
-		// @TODO: debug log
+		log.Debugf("Could not stat a file: %v", err)
 		return wire.NewError("ERR", "Unexpected error occurred")
 	}
 
@@ -53,7 +54,7 @@ func handleDel(args []wire.Value, s *sessionInfo) wire.Value {
 	}
 
 	if err != nil {
-		// @TODO: debug log
+		log.Debugf("Could not remove file or directory: %v", err)
 		return wire.NewError("ERR", "Unexpected error occurred")
 	}
 

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/ngagnon/fly-server/logging"
 	"github.com/ngagnon/fly-server/vfs"
 	"github.com/ngagnon/fly-server/wire"
 )
@@ -40,7 +41,7 @@ func handleList(args []wire.Value, s *sessionInfo) wire.Value {
 	}
 
 	if err != nil {
-		// @TODO: debug log
+		log.Debugf("Could not stat file: %v", err)
 		return wire.NewError("ERR", "Unexpected error occurred")
 	}
 
@@ -50,7 +51,7 @@ func handleList(args []wire.Value, s *sessionInfo) wire.Value {
 		files, err := os.ReadDir(realPath)
 
 		if err != nil {
-			// @TODO: debug log
+			log.Debugf("Could not read directory: %v", err)
 			return wire.NewError("ERR", "Unexpected error occurred")
 		}
 
@@ -58,7 +59,7 @@ func handleList(args []wire.Value, s *sessionInfo) wire.Value {
 			info, err := file.Info()
 
 			if err != nil {
-				// @TODO: debug log
+				log.Debugf("Could not get file info: %v", err)
 				return wire.NewError("ERR", "Unexpected error occurred")
 			}
 
