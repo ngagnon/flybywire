@@ -5,6 +5,8 @@ RSpec.describe 'CHROOT' do
         before(:all) do
             @username = Username.get_next
             admin.cmd!('ADDUSER', @username, 'secret')
+            admin.cmd!('PUTACP', "policy-#{SecureRandom.hex}", 'ALLOW', 'R', [@username], ['/'])
+            admin.cmd!('PUTACP', "policy-#{SecureRandom.hex}", 'ALLOW', 'W', [@username], ['/'])
 
             @dir = "/chroot-#{SecureRandom.hex}"
             admin.cmd!('MKDIR', @dir)

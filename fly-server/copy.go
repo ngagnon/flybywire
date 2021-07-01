@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/ngagnon/fly-server/vfs"
 	"github.com/ngagnon/fly-server/wire"
 )
 
@@ -26,17 +27,17 @@ func handleCopy(args []wire.Value, s *sessionInfo) wire.Value {
 	}
 
 	srcRaw.Value = "/" + strings.Trim(srcRaw.Value, "/")
-	src, srcOk := resolveVirtualPath(srcRaw.Value, s.user)
+	src, srcErr := resolveRead(s, srcRaw.Value)
 
 	dstRaw.Value = "/" + strings.Trim(dstRaw.Value, "/")
-	dst, dstOk := resolveVirtualPath(dstRaw.Value, s.user)
+	dst, dstErr := resolveWrite(s, dstRaw.Value)
 
-	if !srcOk || !dstOk {
-		return wire.NewError("NOTFOUND", "No such file or directory")
+	if errors.Is(srcErr, vfs.ErrDenied) || errors.Is(dstErr, vfs.ErrDenied) {
+		return wire.NewError("DENIED", "Access denied")
 	}
 
-	if !checkAuth(s, srcRaw.Value, true) || !checkAuth(s, dstRaw.Value, true) {
-		return wire.NewError("DENIED", "Access denied")
+	if srcErr != nil || dstErr != nil {
+		return wire.NewError("NOTFOUND", "No such file or directory")
 	}
 
 	info, err := os.Stat(src)

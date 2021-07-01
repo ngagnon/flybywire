@@ -11,6 +11,7 @@ import (
 	"github.com/ngagnon/fly-server/db"
 	log "github.com/ngagnon/fly-server/logging"
 	"github.com/ngagnon/fly-server/session"
+	"github.com/ngagnon/fly-server/vfs"
 	"github.com/ngagnon/fly-server/wire"
 )
 
@@ -43,7 +44,12 @@ var commandHandlers = map[string]commandHandler{
 	"SHOWUSER": handleShowUser,
 	"STREAM":   handleStream,
 	"CLOSE":    handleClose,
+	"LISTACP":  handleListAcp,
+	"PUTACP":   handlePutAcp,
+	"RMACP":    handleRmAcp,
 }
+
+type policyStore struct{}
 
 var dir string
 var flydb *db.Handle
@@ -77,6 +83,8 @@ func main() {
 	if flydb, err = db.Open(dir); err != nil {
 		log.Fatalf("%v", err)
 	}
+
+	vfs.Setup(&policyStore{}, dir)
 
 	tokenKey, err = crypto.RandomKey(16)
 
@@ -157,4 +165,10 @@ func (s *sessionInfo) changeUser(username string) {
 func getCommandHandler(s string) (h commandHandler, ok bool) {
 	h, ok = commandHandlers[strings.ToUpper(s)]
 	return
+}
+
+func (s *policyStore) GetPolicies(path string, username string, action db.Action) []db.Policy {
+	tx := flydb.RTxn()
+	defer tx.Complete()
+	return tx.GetPolicies(path, username, action)
 }

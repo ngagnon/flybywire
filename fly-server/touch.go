@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ngagnon/fly-server/vfs"
 	"github.com/ngagnon/fly-server/wire"
 )
 
@@ -21,19 +22,18 @@ func handleTouch(args []wire.Value, s *sessionInfo) wire.Value {
 	}
 
 	vPath := "/" + strings.Trim(rawPath.Value, "/")
+	realPath, err := resolveWrite(s, vPath)
 
-	if !checkAuth(s, vPath, true) {
+	if errors.Is(err, vfs.ErrDenied) {
 		return wire.NewError("DENIED", "Access denied")
 	}
 
-	realPath, ok := resolveVirtualPath(vPath, s.user)
-
-	if !ok {
+	if errors.Is(err, vfs.ErrInvalid) || errors.Is(err, vfs.ErrReserved) {
 		return wire.NewError("NOTFOUND", "No such file or directory")
 	}
 
 	now := time.Now()
-	err := os.Chtimes(realPath, now, now)
+	err = os.Chtimes(realPath, now, now)
 
 	if errors.Is(err, os.ErrNotExist) {
 		var f *os.File

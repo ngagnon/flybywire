@@ -94,12 +94,12 @@ func TestAccessRules(t *testing.T) {
 	}
 
 	tx := db.Txn()
-	tx.AddAccessPolicy(&Policy{
-		Name:       "Path with colon",
-		Users:      []string{"john"},
-		Paths:      []string{"/the/first:path", "/the/second/path"},
-		FileAccess: 0,
-		AcpAccess:  0,
+	tx.PutAccessPolicy(&Policy{
+		Name:   "Path with colon",
+		Verb:   Allow,
+		Action: Read,
+		Users:  []string{"john"},
+		Paths:  []string{"/the/first:path", "/the/second/path"},
 	})
 	tx.Complete()
 

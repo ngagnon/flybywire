@@ -4,6 +4,7 @@ require 'fileutils'
 require 'tmpdir'
 require 'test-prof'
 require 'faker'
+require 'securerandom'
 
 require_relative 'server'
 require_relative 'session'
@@ -31,6 +32,8 @@ module TestSuite
         @@admin = Session.new(label: 'admin')
         @@admin.cmd!('AUTH', 'PWD', 'example', 'supersecret')
         @@admin.cmd!('ADDUSER', 'joe', 'regularguy')
+        @@admin.cmd!('PUTACP', "policy-#{SecureRandom.hex}", 'ALLOW', 'R', ['joe'], ['/'])
+        @@admin.cmd!('PUTACP', "policy-#{SecureRandom.hex}", 'ALLOW', 'W', ['joe'], ['/'])
 
         @@regular_user = Session.new(label: 'regular user')
         @@regular_user.cmd!('AUTH', 'PWD', 'joe', 'regularguy')

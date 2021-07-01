@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ngagnon/fly-server/vfs"
 	"github.com/ngagnon/fly-server/wire"
 )
 
@@ -22,14 +23,13 @@ func handleList(args []wire.Value, s *sessionInfo) wire.Value {
 	}
 
 	vPath := "/" + strings.Trim(rawPath.Value, "/")
+	realPath, err := resolveRead(s, vPath)
 
-	if !checkAuth(s, vPath, true) {
+	if errors.Is(err, vfs.ErrDenied) {
 		return wire.NewError("DENIED", "Access denied")
 	}
 
-	realPath, ok := resolveVirtualPath(vPath, s.user)
-
-	if !ok {
+	if errors.Is(err, vfs.ErrInvalid) || errors.Is(err, vfs.ErrReserved) {
 		return wire.NewError("NOTFOUND", "No such file or directory")
 	}
 
@@ -62,23 +62,22 @@ func handleList(args []wire.Value, s *sessionInfo) wire.Value {
 				return wire.NewError("ERR", "Unexpected error occurred")
 			}
 
-			fullPath := path.Join(realPath, info.Name())
-			addFile(table, info, fullPath)
+			fullPath := path.Join(vPath, info.Name())
+
+			if _, err := resolveRead(s, fullPath); err == nil {
+				addFile(table, info)
+			}
 		}
 	} else {
-		addFile(table, info, realPath)
+		addFile(table, info)
 	}
 
 	return table
 }
 
-func addFile(t *wire.Table, info os.FileInfo, fullPath string) {
+func addFile(t *wire.Table, info os.FileInfo) {
 	var ftype string
 	var fsize wire.Value
-
-	if isReservedPath(fullPath) {
-		return
-	}
 
 	if info.IsDir() {
 		ftype = "D"

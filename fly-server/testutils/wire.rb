@@ -66,6 +66,8 @@ module Wire
                     String.new(elem).put(s)
                 elsif elem.is_a? ::Integer
                     Integer.new(elem).put(s)
+                elsif elem.is_a? ::Array
+                    Array.new(elem).put(s)
                 elsif !!elem == elem
                     Boolean.new(elem).put(s)
                 else
@@ -99,6 +101,10 @@ module Wire
  
         def put(s)
             raise "not implemented"
+        end
+
+        def rows()
+            @data
         end
     end
 

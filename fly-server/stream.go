@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"strings"
 
+	"github.com/ngagnon/fly-server/vfs"
 	"github.com/ngagnon/fly-server/wire"
 )
 
@@ -30,14 +32,13 @@ func handleStream(args []wire.Value, s *sessionInfo) wire.Value {
 	}
 
 	writing := mode.Value == "W"
+	realPath, err := resolve(s, vPath, writing)
 
-	if !checkAuth(s, vPath, writing) {
+	if errors.Is(err, vfs.ErrDenied) {
 		return wire.NewError("DENIED", "Access denied")
 	}
 
-	realPath, ok := resolveVirtualPath(vPath, s.user)
-
-	if !ok {
+	if errors.Is(err, vfs.ErrInvalid) || errors.Is(err, vfs.ErrReserved) {
 		return wire.NewError("NOTFOUND", "No such file or directory")
 	}
 

@@ -1,41 +1,41 @@
 package main
 
 import (
-	"path"
-	"strings"
-
 	"github.com/ngagnon/fly-server/db"
+	"github.com/ngagnon/fly-server/vfs"
 )
 
-func resolveVirtualPath(vPath string, user *db.User) (realPath string, ok bool) {
-	cleanPath := strings.Trim(vPath, "/")
-	segments := strings.Split(cleanPath, "/")
-
-	for _, s := range segments {
-		st := strings.TrimSpace(s)
-
-		if st == "." || st == ".." {
-			return "", false
-		}
-	}
-
-	realPath = dir
-
-	if user != nil {
-		realPath = path.Join(realPath, user.Chroot)
-	}
-
-	realPath = path.Join(realPath, cleanPath)
-	flyRoot := path.Join(dir, ".fly")
-
-	if strings.HasPrefix(realPath, flyRoot) {
-		return "", false
-	}
-
-	return realPath, true
+func resolveRead(s *sessionInfo, path string) (realPath string, err error) {
+	return resolve(s, path, false)
 }
 
-func isReservedPath(realPath string) bool {
-	flyRoot := path.Join(dir, ".fly")
-	return strings.HasPrefix(realPath, flyRoot)
+func resolveWrite(s *sessionInfo, path string) (realPath string, err error) {
+	return resolve(s, path, true)
+}
+
+func resolve(s *sessionInfo, path string, write bool) (realPath string, err error) {
+	if s.singleUser {
+		return vfs.ResolveSingleUser(path)
+	}
+
+	action := db.Read
+
+	if write {
+		action = db.Write
+	}
+
+	return vfs.Resolve(path, s.user, action)
+}
+
+// @TODO: maybe not needed?
+func checkAdmin(s *sessionInfo) bool {
+	if s.singleUser {
+		return true
+	}
+
+	if s.username == "" {
+		return false
+	}
+
+	return s.user.Admin
 }

@@ -1,9 +1,11 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"strings"
 
+	"github.com/ngagnon/fly-server/vfs"
 	"github.com/ngagnon/fly-server/wire"
 )
 
@@ -19,14 +21,13 @@ func handleMkdir(args []wire.Value, s *sessionInfo) wire.Value {
 	}
 
 	vPath := "/" + strings.Trim(rawPath.Value, "/")
+	realPath, err := resolveWrite(s, vPath)
 
-	if !checkAuth(s, vPath, true) {
+	if errors.Is(err, vfs.ErrDenied) {
 		return wire.NewError("DENIED", "Access denied")
 	}
 
-	realPath, ok := resolveVirtualPath(vPath, s.user)
-
-	if !ok {
+	if errors.Is(err, vfs.ErrInvalid) || errors.Is(err, vfs.ErrReserved) {
 		return wire.NewError("NOTFOUND", "No such file or directory")
 	}
 

@@ -32,7 +32,7 @@ func handleRmuser(args []wire.Value, s *sessionInfo) wire.Value {
 	}
 
 	if err != nil {
-		log.Fatalf("Failed to delete user user: %v", err)
+		log.Fatalf("Failed to delete user: %v", err)
 	}
 
 	return wire.OK

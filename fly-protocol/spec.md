@@ -401,29 +401,37 @@ LISTACP
 
 Shows a list of all the access control policies.
 
-ADDACP
+Returns a table with the following fields:
+
+- Policy name (string)
+- ALLOW or DENY (string)
+- R or W (string)
+- Users (array of strings)
+- Paths (array of strings)
+
+PUTACP
 ---
 
-Usage: ADDACP name users[] paths perm
+Usage: PUTACP name ALLOW R/W users... paths...
+Usage: PUTACP name DENY R/W users... paths...
 
-Creates a new access control policy.
+Creates or modifies an access control policy.
 
-The rule will specify:
+Arguments:
 
-- The affected users (colon-separated)
-- A list of path prefixes (colon-separated)
-- What to allow: each letter is either N (no access), R (read) or W (read-write). First letter is for file access, second letter is for ACPs.
+- Rule name (string)
+- ALLOW or DENY (string)
+- R (read) or W (write) (string)
+- Usernames (list of strings)
+- Paths (list of strings)
 
-MODACP
+RMACP
 ---
 
-Usage: MODACP name users[] paths[] perm
-
-Updates an access control policy. Same arguments as ADDACP.
-
-REMACP
----
-
-Usage: REMACP name
+Usage: RMACP name
 
 Deletes an access control policy.
+
+Arguments:
+
+- Name (string)
