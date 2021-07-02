@@ -1,8 +1,6 @@
 package main
 
 import (
-	"regexp"
-
 	"github.com/ngagnon/fly-server/db"
 	log "github.com/ngagnon/fly-server/logging"
 	"github.com/ngagnon/fly-server/wire"
@@ -42,7 +40,7 @@ func handleAddUser(args []wire.Value, s *sessionInfo) wire.Value {
 		return wire.NewError("ARG", "Maximum username length is 32")
 	}
 
-	if matched, err := regexp.Match("^[a-z_]([a-z0-9_-]{0,31})$", []byte(username.Value)); !matched || err != nil {
+	if !db.ValidateUsername(username.Value) {
 		return wire.NewError("ARG", "Invalid username")
 	}
 

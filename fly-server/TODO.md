@@ -1,4 +1,7 @@
-- Fix the in-code TODOs
+- ADDUSER shouldn't accept existing username
+- CHROOT shouldn't accept invalid path (pass it through vfs.ResolveSingleUser)
+- When apply chroot (in vfs), if the folder doesn't exist (or it's not a folder),
+  should return NOTFOUND or something (except with LIST /)
 - Should be TLS by default
     - Disabled with -notls option
 - Reorganize folders: server, common/wire, cli
@@ -18,7 +21,6 @@
         - acp list/add/remove (l/a/r)
 - Most tests could use a refactoring. Also need to be beefed up to handle all cases (regular user, single user, unauth, ACPs, etc.). Should also test for error scenarios, such as file not found.
 - Ruby tests shouldn't test things with the local disk. Should just use the protocol itself
-- Verify integrity of the databases when reading from them
 - Allow for a custom config path (instead of .fly)
 - CONFGET/CONFSET (only admins can CONFSET)
     * auth token expiry

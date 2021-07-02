@@ -97,6 +97,11 @@ RSpec.describe 'STREAM' do
                         expect(contents).to eq("hello\n#{i}\n")
                     end
                 end
+
+                it 'returns NOTFOUND when parent folder does not exist' do
+                    resp = @session.cmd('STREAM', 'W', "/home/#{SecureRandom.hex}/test.txt")
+                    expect(resp).to be_error('NOTFOUND')
+                end
             end
 
             describe 'read' do

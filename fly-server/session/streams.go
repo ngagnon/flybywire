@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -92,8 +93,14 @@ func (s *S) NewReadStream(path string) (id int, wirErr *wire.Error) {
 	return id, nil
 }
 
-/* @TODO: check that the parent folder of finalPath exists */
 func (s *S) NewWriteStream(finalPath string) (id int, wireErr *wire.Error) {
+	parentFolder := filepath.Dir(finalPath)
+	info, err := os.Stat(parentFolder)
+
+	if errors.Is(err, os.ErrNotExist) || !info.IsDir() {
+		return 0, wire.NewError("NOTFOUND", "No such file or directory")
+	}
+
 	file, err := os.CreateTemp("", "flytmp")
 
 	if err != nil {

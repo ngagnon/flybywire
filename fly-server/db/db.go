@@ -9,8 +9,11 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 	"sync"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {
@@ -312,10 +315,6 @@ func (db *Handle) readUsers() {
 			return
 		}
 
-		// @TODO: make sure the username is valid
-		// @TODO: quickly check the password hashes with bcrypt.Cost()
-		// @TODO: make sure the chroot is a valid path
-		// @TODO: make sure admin is either "1" or "0"
 		newuser := User{
 			Username: record[0],
 			Password: []byte(record[1]),
@@ -324,7 +323,29 @@ func (db *Handle) readUsers() {
 		}
 
 		db.users[newuser.Username] = newuser
+
+		if !ValidateUsername(newuser.Username) {
+			db.err = fmt.Errorf("Corrupted FlyDB users table. Invalid username: %s", newuser.Username)
+			return
+		}
+
+		if record[3] != "0" && record[3] != "1" {
+			db.err = fmt.Errorf("Corrupted FlyDB users table. Invalid admin bit: %s", record[3])
+			return
+		}
+
+		err = bcrypt.CompareHashAndPassword([]byte(newuser.Password), []byte("secret"))
+
+		if err != nil && err != bcrypt.ErrMismatchedHashAndPassword {
+			db.err = fmt.Errorf("Corrupted FlyDB users table. Invalid password hash: %s", newuser.Password)
+			return
+		}
 	}
+}
+
+func ValidateUsername(username string) bool {
+	matched, err := regexp.Match("^[a-z_]([a-z0-9_-]{0,31})$", []byte(username))
+	return matched && err == nil
 }
 
 func (db *Handle) writeUsers() {
@@ -419,6 +440,11 @@ func (db *Handle) readAccessPolicies() {
 			return
 		}
 
+		if len(strings.TrimSpace(record[0])) == 0 {
+			db.err = fmt.Errorf("Corrupted FlyDB ACP table: missing ACP name at line %d", lineNum)
+			return
+		}
+
 		if record[1] != "ALLOW" && record[1] != "DENY" {
 			db.err = fmt.Errorf("Corrupted FlyDB ACP table: invalid verb (ALLOW/DENY) at line %d", lineNum)
 			return
@@ -429,15 +455,20 @@ func (db *Handle) readAccessPolicies() {
 			return
 		}
 
+		paths, err := parsePolicyPaths(record[4], lineNum)
+
+		if err != nil {
+			db.err = err
+			return
+		}
+
 		db.policies[record[0]] = Policy{
 			Name:   record[0],
 			Verb:   Verb(record[1]),
 			Action: Action(record[2][0]),
 			Users:  parsePolicyUsers(record[3]),
-			Paths:  parsePolicyPaths(record[4]),
+			Paths:  paths,
 		}
-
-		// @TODO: validate integrity
 	}
 }
 
@@ -507,20 +538,21 @@ func sanitizePaths(policy *Policy) {
 }
 
 func parsePolicyUsers(s string) []string {
-	if s == "*" {
-		return nil
-	}
-
 	return strings.Split(s, ":")
 }
 
-// @TODO: QueryUnescape could return error
-func parsePolicyPaths(s string) []string {
+func parsePolicyPaths(s string, lineNum int) ([]string, error) {
 	paths := strings.Split(s, ":")
 
+	var err error
+
 	for i, p := range paths {
-		paths[i], _ = url.QueryUnescape(p)
+		paths[i], err = url.QueryUnescape(p)
+
+		if err != nil {
+			return nil, fmt.Errorf("Corrupted FlyDB ACP table: invalid path %s at line %d", p, lineNum)
+		}
 	}
 
-	return paths
+	return paths, nil
 }

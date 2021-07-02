@@ -3,6 +3,8 @@ package session
 import (
 	"errors"
 	"io"
+
+	log "github.com/ngagnon/fly-server/logging"
 )
 
 var done = errors.New("done")
@@ -20,7 +22,10 @@ func handleWrites(conn io.Writer, s *S) {
 		}
 
 		if err != nil {
-			// @TODO: log err? (if != drain)
+			if err != drain {
+				log.Debugf("Connection terminated due to write error: %v", err)
+			}
+
 			s.terminate <- struct{}{}
 			return
 		}

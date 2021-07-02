@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	log "github.com/ngagnon/fly-server/logging"
 	"github.com/ngagnon/fly-server/wire"
 )
 
@@ -21,6 +22,8 @@ func handleReads(conn net.Conn, s *S) {
 	reader := wire.NewReader(bufReader)
 	reader.MaxBlobSize = 32 * 1024
 
+	var err error
+
 	for {
 		select {
 		case <-s.done:
@@ -28,8 +31,9 @@ func handleReads(conn net.Conn, s *S) {
 		default:
 		}
 
+		var value wire.Value
 		conn.SetReadDeadline(time.Now().Add(5 * time.Minute))
-		value, err := reader.Read()
+		value, err = reader.Read()
 
 		if errors.Is(err, wire.ErrFormat) {
 			protoErr := wire.NewError("PROTO", err.Error())
@@ -55,7 +59,7 @@ func handleReads(conn net.Conn, s *S) {
 		s.protocolError("unexpected %s", value.Name())
 	}
 
-	// @TODO: log err?
+	log.Debugf("Connection terminated due to read error: %v", err)
 }
 
 func handleCommand(array *wire.Array, s *S) {
