@@ -1,8 +1,9 @@
 - Fix the in-code TODOs
-- Should be TLS by default (accept server cert like when connecting over SSH)
+- Should be TLS by default
     - Disabled with -notls option
 - Reorganize folders: server, common/wire, cli
 - Basic CLI client
+    - when connecting, ask client if they want to accept server cert (like SSH)
     - fly cp SOURCE DEST
     - fly to HOST
         - ls

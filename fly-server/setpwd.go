@@ -39,7 +39,7 @@ func handleSetpwd(args []wire.Value, s *sessionInfo) wire.Value {
 		return wire.NewError("ILLEGAL", "Cannot manage users in single-user mode")
 	}
 
-	if s.username != username.Value && !checkAdmin(s) {
+	if s.username != username.Value && (s.user == nil || !s.user.Admin) {
 		return wire.NewError("DENIED", "You are not allowed to manage users.")
 	}
 

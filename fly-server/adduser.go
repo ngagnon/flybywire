@@ -14,7 +14,7 @@ func handleAddUser(args []wire.Value, s *sessionInfo) wire.Value {
 		return wire.NewError("ARG", "Command ADDUSER expects exactly 2 arguments")
 	}
 
-	if !checkAdmin(s) {
+	if !s.singleUser && (s.user == nil || !s.user.Admin) {
 		return wire.NewError("DENIED", "You are not allowed to manage users")
 	}
 

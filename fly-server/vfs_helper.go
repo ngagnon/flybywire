@@ -26,16 +26,3 @@ func resolve(s *sessionInfo, path string, write bool) (realPath string, err erro
 
 	return vfs.Resolve(path, s.user, action)
 }
-
-// @TODO: maybe not needed?
-func checkAdmin(s *sessionInfo) bool {
-	if s.singleUser {
-		return true
-	}
-
-	if s.username == "" {
-		return false
-	}
-
-	return s.user.Admin
-}

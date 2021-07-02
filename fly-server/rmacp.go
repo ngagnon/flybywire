@@ -17,7 +17,7 @@ func handleRmAcp(args []wire.Value, s *sessionInfo) wire.Value {
 		return wire.NewError("ILLEGAL", "Cannot manage ACPs in single-user mode")
 	}
 
-	if !checkAdmin(s) {
+	if s.user == nil || !s.user.Admin {
 		return wire.NewError("DENIED", "You are not allowed to manage users")
 	}
 

@@ -13,12 +13,12 @@ func handleRmuser(args []wire.Value, s *sessionInfo) wire.Value {
 		return wire.NewError("ARG", "Command RMUSER expects exactly 1 argument")
 	}
 
-	if !checkAdmin(s) {
-		return wire.NewError("DENIED", "You are not allowed to manage users.")
-	}
-
 	if s.singleUser {
 		return wire.NewError("ILLEGAL", "Cannot manage users in single-user mode")
+	}
+
+	if s.user == nil || !s.user.Admin {
+		return wire.NewError("DENIED", "You are not allowed to manage users.")
 	}
 
 	username, ok := args[0].(*wire.String)
