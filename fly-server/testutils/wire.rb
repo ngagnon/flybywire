@@ -1,27 +1,3 @@
-class IO
-    def gets_timeout(sep, timeout)
-        buf = ''
-
-        while !(buf.end_with? sep)
-            begin
-                ch = self.read_nonblock(1)
-            rescue IO::WaitReadable
-                ret = IO.select([self], nil, nil, timeout)
-
-                if ret == nil
-                    raise 'gets timed out'
-                end
-
-                retry
-            end
-
-            buf << ch
-        end
-
-        buf
-    end
-end
-
 module Wire
     class Integer
         attr_reader :value
@@ -194,8 +170,30 @@ module Wire
         end
     end
 
+    def self.gets_timeout(io, sep, timeout)
+        buf = ''
+
+        while !(buf.end_with? sep)
+            begin
+                ch = io.read_nonblock(1)
+            rescue IO::WaitReadable
+                ret = IO.select([io], nil, nil, timeout)
+
+                if ret == nil
+                    raise 'gets timed out'
+                end
+
+                retry
+            end
+
+            buf << ch
+        end
+
+        buf
+    end
+
     def self.get_next(s)
-        line = s.gets_timeout("\n", 2)
+        line = gets_timeout(s, "\n", 2)
 
         if line == nil
             raise 'unexpected end of file'
@@ -218,7 +216,7 @@ module Wire
             line.delete_prefix!("$")
             len = line.to_i
             str = s.read(len)
-            s.gets_timeout("\n", 1)
+            gets_timeout(s, "\n", 1)
             return Blob.new(str)
         elsif line.start_with? '*'
             line.delete_prefix!("*")

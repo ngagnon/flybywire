@@ -1,5 +1,3 @@
-- Should be TLS by default
-    - Disabled with -notls option
 - Reorganize folders: server, common/wire, cli
 - Basic CLI client
     - when connecting, ask client if they want to accept server cert (like SSH)

@@ -42,6 +42,8 @@ class Session < SessionIO
 
     def initialize(**opts)
         port = opts[:port] || 6767
+        tls = opts[:tls] || false
+        fingerprint = opts[:fingerprint] || ''
         @label = opts[:label] || 'no name'
 
         5.times do
@@ -54,6 +56,55 @@ class Session < SessionIO
         end
 
         raise 'could not open connection' unless @s
+
+        if tls 
+            ctx = OpenSSL::SSL::SSLContext.new()
+            ctx.min_version = OpenSSL::SSL::TLS1_2_VERSION
+            ctx.verify_mode = OpenSSL::SSL::VERIFY_PEER
+            ctx.verify_callback = lambda do |preverify_ok, cert_store|
+                end_cert = cert_store.chain[0]
+                cert_digest = OpenSSL::Digest::SHA256.hexdigest(end_cert.to_der)
+                return cert_digest == fingerprint
+            end
+
+            ssl = OpenSSL::SSL::SSLSocket.new(@s, ctx)
+            ssl.sync_close = true
+            ssl.connect
+
+            @s = ssl
+        end
+    end
+
+    def self.get_fingerprint(port = 6767)
+        s = nil
+
+        5.times do
+            begin
+                s = TCPSocket.new('localhost', port)
+                break
+            rescue
+                sleep 0.100
+            end
+        end
+
+        raise 'could not open connection' unless s
+
+        fingerprint = ''
+
+        ctx = OpenSSL::SSL::SSLContext.new()
+        ctx.min_version = OpenSSL::SSL::TLS1_2_VERSION
+        ctx.verify_callback = lambda do |preverify_ok, cert_store|
+            end_cert = cert_store.chain[0]
+            fingerprint = OpenSSL::Digest::SHA256.hexdigest(end_cert.to_der)
+            return true
+        end
+
+        ssl = OpenSSL::SSL::SSLSocket.new(s, ctx)
+        ssl.sync_close = true
+        ssl.connect
+        ssl.close
+
+        fingerprint
     end
 
     def close

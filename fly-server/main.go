@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"net"
@@ -55,23 +56,21 @@ var dir string
 var flydb *db.Handle
 var tokenKey []byte
 
+var (
+	port  = flag.Int("port", 6767, "TCP port to listen on")
+	notls = flag.Bool("notls", false, "Disable TLS")
+	debug = flag.Bool("debug", false, "Turn on debug logging")
+)
+
 func main() {
-	port := flag.Int("port", 6767, "TCP port to listen on")
-	debug := flag.Bool("debug", false, "Turn on debug logging")
+	var err error
+
 	flag.Parse()
 
 	log.Configure(*debug, os.Stderr)
 
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
-
-	if err != nil {
-		log.Fatalf("Cannot start TCP server: %v", err)
-	}
-
-	defer ln.Close()
-
 	if flag.NArg() == 0 {
-		log.Fatalf("Usage: fly-server ROOTDIR", err)
+		log.Fatalf("Usage: fly-server ROOTDIR")
 	}
 
 	dir = flag.Arg(0)
@@ -83,6 +82,20 @@ func main() {
 	if flydb, err = db.Open(dir); err != nil {
 		log.Fatalf("%v", err)
 	}
+
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
+
+	if err != nil {
+		log.Fatalf("Cannot start TCP server: %v", err)
+	}
+
+	if !*notls {
+		tlsConfig := &tls.Config{}
+		tlsConfig.GetCertificate = flydb.GetCertificate
+		ln = tls.NewListener(ln, tlsConfig)
+	}
+
+	defer ln.Close()
 
 	vfs.Setup(&policyStore{}, dir)
 
