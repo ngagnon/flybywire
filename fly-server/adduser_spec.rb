@@ -23,6 +23,11 @@ RSpec.describe 'ADDUSER' do
             resp = admin.cmd('ADDUSER', username, '')
             expect(resp).to be_error('ARG')
         end
+
+        it 'does not allow duplicate username' do
+            resp = admin.cmd('ADDUSER', @username, 'password')
+            expect(resp).to be_error('EXISTS')
+        end
     end
 
     ['unauthenticated', 'regular user'].each do |persona|

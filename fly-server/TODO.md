@@ -1,4 +1,3 @@
-- ADDUSER shouldn't accept existing username
 - CHROOT shouldn't accept invalid path (pass it through vfs.ResolveSingleUser)
 - When apply chroot (in vfs), if the folder doesn't exist (or it's not a folder),
   should return NOTFOUND or something (except with LIST /)
@@ -8,6 +7,8 @@
 - Basic CLI client
     - when connecting, ask client if they want to accept server cert (like SSH)
     - fly cp SOURCE DEST
+
+- Continue CLI client
     - fly to HOST
         - ls
         - rm

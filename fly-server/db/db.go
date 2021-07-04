@@ -61,6 +61,7 @@ type Txn struct {
 }
 
 var ErrNotFound = errors.New("not found")
+var ErrExists = errors.New("already exists")
 
 func Open(dir string) (*Handle, error) {
 	db := &Handle{
@@ -147,6 +148,10 @@ func (db *Handle) findUser(username string) (user User, found bool) {
 }
 
 func (tx *Txn) AddUser(u *User) error {
+	if _, found := tx.db.users[u.Username]; found {
+		return ErrExists
+	}
+
 	tx.db.users[u.Username] = *u
 	tx.db.writeUsers()
 

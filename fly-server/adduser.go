@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+
 	"github.com/ngagnon/fly-server/db"
 	log "github.com/ngagnon/fly-server/logging"
 	"github.com/ngagnon/fly-server/wire"
@@ -59,12 +61,16 @@ func handleAddUser(args []wire.Value, s *sessionInfo) wire.Value {
 	}
 
 	tx := flydb.Txn()
+	err = tx.AddUser(newUser)
+	tx.Complete()
 
-	if err = tx.AddUser(newUser); err != nil {
-		log.Fatalf("Failed to create user: %v", err)
+	if errors.Is(err, db.ErrExists) {
+		return wire.NewError("EXISTS", "Already exists")
 	}
 
-	tx.Complete()
+	if err != nil {
+		log.Fatalf("Failed to create user: %v", err)
+	}
 
 	if s.singleUser {
 		s.changeUser(newUser.Username)
