@@ -33,7 +33,13 @@ func Resolve(vPath string, user *db.User, action db.Action) (realPath string, er
 }
 
 func resolve(vPath string, user *db.User, action *db.Action) (realPath string, err error) {
-	cleanPath := "/" + strings.Trim(vPath, "/")
+	cleanPath := vPath
+
+	if user != nil {
+		cleanPath = path.Join(user.Chroot, cleanPath)
+	}
+
+	cleanPath = "/" + strings.Trim(cleanPath, "/")
 	segments := strings.Split(cleanPath, "/")
 
 	for _, s := range segments {
@@ -42,11 +48,6 @@ func resolve(vPath string, user *db.User, action *db.Action) (realPath string, e
 		if st == "." || st == ".." {
 			return "", ErrInvalid
 		}
-	}
-
-	if user != nil {
-		cleanPath = path.Join(user.Chroot, cleanPath)
-		cleanPath = "/" + strings.Trim(cleanPath, "/")
 	}
 
 	if action != nil && !authorize(user, cleanPath, *action) {

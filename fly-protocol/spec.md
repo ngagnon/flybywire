@@ -390,6 +390,8 @@ Sets a chroot for a user. If path is an empty string, then the user isn't chroot
 
 The path should be an absolute virtual path, not a physical path. If the Fly servers' root directory is /home/fly, then use a chroot like /bob, not /home/fly/bob
 
+The folder will be created if it does not already exist.
+
 Arguments:
 
 - Username (string)

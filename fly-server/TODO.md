@@ -1,5 +1,3 @@
-- When apply chroot (in vfs), if the folder doesn't exist (or it's not a folder),
-  should return NOTFOUND or something (except with LIST /)
 - Should be TLS by default
     - Disabled with -notls option
 - Reorganize folders: server, common/wire, cli

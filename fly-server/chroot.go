@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	"github.com/ngagnon/fly-server/db"
 	log "github.com/ngagnon/fly-server/logging"
 	"github.com/ngagnon/fly-server/vfs"
@@ -32,14 +34,21 @@ func handleChroot(args []wire.Value, s *sessionInfo) wire.Value {
 		return wire.NewError("DENIED", "You are not allowed to manage users.")
 	}
 
-	if _, err := vfs.ResolveSingleUser(chroot.Value); err != nil {
+	realPath, err := vfs.ResolveSingleUser(chroot.Value)
+
+	if err != nil {
 		return wire.NewError("ARG", "Invalid path")
+	}
+
+	if err = os.MkdirAll(realPath, 0755); err != nil {
+		log.Debugf("Could not create folder: %v", err)
+		return wire.NewError("ERR", "Unexpected error occurred")
 	}
 
 	tx := flydb.Txn()
 	defer tx.Complete()
 
-	err := tx.UpdateUser(username.Value, func(u *db.User) {
+	err = tx.UpdateUser(username.Value, func(u *db.User) {
 		u.Chroot = chroot.Value
 	})
 

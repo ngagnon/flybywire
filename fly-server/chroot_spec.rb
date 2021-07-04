@@ -56,6 +56,16 @@ RSpec.describe 'CHROOT' do
             resp = admin.cmd('CHROOT', @username, '.fly')
             expect(resp).to be_error('ARG')
         end
+
+        it 'creates folder if it does not exist' do
+            dir = "/chroots/#{SecureRandom.hex}/home"
+            admin.cmd!('CHROOT', @username, dir)
+
+            s = Session.new
+            s.cmd!('AUTH', 'PWD', @username, 'secret')
+            s.write_file('test.txt', "hello\nchroot\n")
+            s.close
+        end
     end
 
     context 'single user' do
