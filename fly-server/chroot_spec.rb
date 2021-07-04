@@ -45,6 +45,17 @@ RSpec.describe 'CHROOT' do
 
             s.close
         end
+
+        it 'does not allow invalid paths' do
+            resp = admin.cmd('CHROOT', @username, '/hello/../invalid')
+            expect(resp).to be_error('ARG')
+
+            resp = admin.cmd('CHROOT', @username, '.fly/invalid')
+            expect(resp).to be_error('ARG')
+
+            resp = admin.cmd('CHROOT', @username, '.fly')
+            expect(resp).to be_error('ARG')
+        end
     end
 
     context 'single user' do

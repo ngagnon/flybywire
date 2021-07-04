@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/ngagnon/fly-server/db"
 	log "github.com/ngagnon/fly-server/logging"
+	"github.com/ngagnon/fly-server/vfs"
 	"github.com/ngagnon/fly-server/wire"
 )
 
@@ -29,6 +30,10 @@ func handleChroot(args []wire.Value, s *sessionInfo) wire.Value {
 
 	if s.user == nil || !s.user.Admin {
 		return wire.NewError("DENIED", "You are not allowed to manage users.")
+	}
+
+	if _, err := vfs.ResolveSingleUser(chroot.Value); err != nil {
+		return wire.NewError("ARG", "Invalid path")
 	}
 
 	tx := flydb.Txn()

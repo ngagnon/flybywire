@@ -1,4 +1,3 @@
-- CHROOT shouldn't accept invalid path (pass it through vfs.ResolveSingleUser)
 - When apply chroot (in vfs), if the folder doesn't exist (or it's not a folder),
   should return NOTFOUND or something (except with LIST /)
 - Should be TLS by default
