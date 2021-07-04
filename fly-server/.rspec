@@ -1,2 +1,0 @@
---default-path .
---require ./testutils/spec_helper.rb

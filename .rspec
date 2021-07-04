@@ -1,0 +1,2 @@
+--default-path ./cmd/fly-server
+--require ./testutils/spec_helper.rb
