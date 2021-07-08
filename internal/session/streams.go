@@ -101,6 +101,17 @@ func (s *S) NewWriteStream(finalPath string) (id int, wireErr *wire.Error) {
 		return 0, wire.NewError("NOTFOUND", "No such file or directory")
 	}
 
+	info, err = os.Stat(finalPath)
+
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		log.Debugf("Could not stat file for writing: %v", err)
+		return 0, wire.NewError("ERR", "Unexpected error occurred")
+	}
+
+	if err == nil && !info.Mode().IsRegular() {
+		return 0, wire.NewError("ILLEGAL", "Not a regular file")
+	}
+
 	file, err := os.CreateTemp("", "flytmp")
 
 	if err != nil {

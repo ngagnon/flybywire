@@ -8,6 +8,7 @@ import (
 	"io"
 	"math"
 	"strconv"
+	"strings"
 )
 
 type Value interface {
@@ -49,8 +50,8 @@ type Integer struct {
 }
 
 type Error struct {
-	code string
-	msg  string
+	Code    string
+	Message string
 }
 
 type Map struct {
@@ -104,8 +105,12 @@ func readValue(r *WireReader, canBeTag bool) (Value, error) {
 		return handleBoolean(r.r)
 	case '+':
 		return handleString(r.r)
+	case '-':
+		return handleError(r.r)
 	case '@':
 		return handleTag(r, canBeTag)
+	case '=':
+		return handleTable(r)
 	case '*':
 		fallthrough
 	case '$':
@@ -144,6 +149,61 @@ func handleNull(r *bufio.Reader) (Value, error) {
 	return Null, nil
 }
 
+func handleTable(r *WireReader) (Value, error) {
+	rows, cols, err := readTableSize(r.r)
+
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", ErrFormat, err)
+	}
+
+	t := &Table{
+		RowCount: 0,
+		ColCount: cols,
+	}
+
+	for i := 0; i < rows; i++ {
+		row := make([]Value, cols)
+
+		for j, _ := range row {
+			val, err := readValue(r, false)
+
+			if err != nil {
+				return nil, err
+			}
+
+			row[j] = val
+		}
+
+		t.Add(row)
+	}
+
+	return t, nil
+}
+
+func readTableSize(r *bufio.Reader) (rows int, cols int, err error) {
+	line, err := nextLine(r)
+
+	if err != nil {
+		return
+	}
+
+	i := strings.Index(string(line), ",")
+
+	if i == -1 {
+		return 0, 0, fmt.Errorf("invalid table size: %s", string(line))
+	}
+
+	if rows, err = strconv.Atoi(string(line[0:i])); err != nil {
+		return 0, 0, fmt.Errorf("invalid table size: %s", string(line))
+	}
+
+	if cols, err = strconv.Atoi(string(line[i+1:])); err != nil {
+		return 0, 0, fmt.Errorf("invalid table size: %s", string(line))
+	}
+
+	return
+}
+
 func handleBoolean(r *bufio.Reader) (Value, error) {
 	sym, err := r.ReadByte()
 
@@ -178,6 +238,23 @@ func handleString(r *bufio.Reader) (Value, error) {
 	buf = buf[:len(buf)-1]
 
 	return NewString(string(buf)), nil
+}
+
+func handleError(r *bufio.Reader) (Value, error) {
+	buf, err := r.ReadBytes('\n')
+
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrIO, err)
+	}
+
+	buf = buf[:len(buf)-1]
+	i := strings.Index(string(buf), " ")
+
+	if i == -1 {
+		return nil, fmt.Errorf("%w: error should have at least one space", ErrFormat)
+	}
+
+	return NewError(string(buf[0:i]), string(buf[i+1:])), nil
 }
 
 func handleTag(r *WireReader, canBeTag bool) (Value, error) {
@@ -287,7 +364,7 @@ func readLine(r *bufio.Reader) ([]byte, error) {
 
 func NewError(code string, format string, v ...interface{}) *Error {
 	msg := fmt.Sprintf(format, v...)
-	return &Error{code: code, msg: msg}
+	return &Error{Code: code, Message: msg}
 }
 
 func NewString(val string) *String {
@@ -353,7 +430,7 @@ func (f *TaggedValue) WriteTo(w io.Writer) (err error) {
 }
 
 func (e *Error) WriteTo(w io.Writer) (err error) {
-	_, err = fmt.Fprintf(w, "-%s %s\n", e.code, e.msg)
+	_, err = fmt.Fprintf(w, "-%s %s\n", e.Code, e.Message)
 	return
 }
 
@@ -448,4 +525,12 @@ func (t *Table) Add(row []Value) {
 
 	t.Data = append(t.Data, row...)
 	t.RowCount++
+}
+
+func (t *Table) Row(id int) []Value {
+	if id < 0 || id >= t.RowCount {
+		return nil
+	}
+
+	return t.Data[id*t.ColCount : (id+1)*t.ColCount]
 }

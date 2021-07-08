@@ -88,6 +88,13 @@ RSpec.describe 'LIST' do
                     expect(mtime.to_time).to be_within(0.100).of(@files[1][:mtime])
                 end
             end
+
+            describe 'non existent path' do
+                it 'returns NOTFOUND' do
+                    resp = @session.cmd('LIST', "/some/path/#{SecureRandom.hex}")
+                    expect(resp).to be_error('NOTFOUND')
+                end
+            end
         end
     end
 

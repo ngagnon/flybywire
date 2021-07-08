@@ -1,8 +1,13 @@
 - Basic CLI client
-    - when connecting, ask client if they want to accept server cert (like SSH)
-    - fly cp SOURCE DEST
+    - Download
+- README:
+    - TLS by default
+    - Polish up
+- Publish!
 
+- STREAM W command should return @streamID\n+OK\n upon completion
 - Continue CLI client
+    - Upload & download of multiple files (* glob), folders, recursive, etc.
     - fly to HOST
         - ls
         - rm
