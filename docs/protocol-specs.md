@@ -211,26 +211,6 @@ Can also return errors:
 -DENIED Access denied
 -TOOMANY There are too many open file descriptors
 
-SYNC
----
-
-Usage: SYNC R/W path blockSize
-
-Opens a file for syncing. Use R for reading, W for writing.
-
-Returns a stream ID.
-
-In reading mode, the client is expected to pass a blockSize.
-Then, send the checksums for all the blocks it already has.
-The last chunk it sends should be an +OK to signal the server
-that it can start streaming blocks. Then the server will stream
-blocks, and send NULL to terminate the stream.
-
-In writing mode, the server will immediately start sending checksums
-to the client, and end with a last +OK chunk. This signals the client
-that it can start streaming blocks. It should send NULL as the
-last chunk to indicate that all the blocks were sent.
-
 CLOSE
 ---
 

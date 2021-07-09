@@ -1,11 +1,11 @@
-- Basic CLI client
-    - Download
 - README:
     - TLS by default
     - Polish up
 - Publish!
 
 - STREAM W command should return @streamID\n+OK\n upon completion
+- STREAM W should first create a $FILE.fly-upload file in the correct folder, then rename it (instead of using /tmp)
+- When downloading a file in the client, it's not very efficient to allocate a []byte with every chunk
 - Continue CLI client
     - Upload & download of multiple files (* glob), folders, recursive, etc.
     - fly to HOST
@@ -31,7 +31,7 @@
 - Allow you to pass a single file instead of a dir? (for quickly sharing a file)
 - Client-cert TLS authentication
 - Extra commands
-    - SYNC
+    - SYNC (rsync-style sync)
     - COPY progress report
     - ACP groups
 - fly-on-s3?

@@ -1,43 +1,33 @@
-Fly-by-wire (abbreviated Fly) is a simple file transfer protocol, as well
-as a reference client and server.
+Fly-by-wire (abbreviated Fly) is a simple file transfer protocol for the modern age. The repo includes the protocol specification, as well as reference client & server implementations.
 
-Its main goal is to fix some of the shortcomings of the FTP protocol
+The project's main ambition is to address some of the shortcomings of the FTP protocol. It's main selling points include:
 
-- Having to open up multiple ports in your firewall
-- Can't send data & commands over the same connection
-- No way to administer the server directly via the protocol
-- No way to sync folder structure efficiently
-- Server shouldn't have to manage the client's current working directory
+- Firewall-friendly (only uses a single TCP port)
+- Connections encrypted with TLS by default
+- Commands & binary data are multiplexed over a single connection
+- Uses an internal user database independent from system users
+- Supports powerful access control policies inspired by S3 bucket policies
+- Users and access control are managed directly via the protocol
+- (WIP) Mirrors files & folders efficiently, similarly to rsync
 
-Protocol
+Progress
 ===
 
-The protocol is based on RESP3 (Redis Serialization Protocol) to make
-client libraries easy to implement.
+The project is currently a work in progress. Use at your own risk.
 
-It supports:
+Server:
 
-- File operations (add, delete, update)
-- ACL operations (grant, revoke, etc.)
-- User management operations (add, delete, update)
-- Efficient synchronization (similar to rsync)
+- Implements 100% of the protocol
 
-Files can be downloaded and uploaded using chunk encoding.
+Client:
 
-By default, the server starts out in single-user mode, where anyone who connects to the server can do whatever they want.
+- Only supports file upload & download
 
-As soon as the first admin user is created, the server switches to multi-user mode, where everything becomes denied by default, and ACL allow rules must be
-created.
+Further Reading
+===
 
-Users can be chrooted to a specific directory. Users can have quotas as well.
-
-Automatic ACL rules can be created based on the username, for instance to
-give each user full access to the folder with their name.
-
-When evaluating the ACLs on a file or folder, the least permissive ACL
-is used?
-
-The default port number is 6767.
+- Protocol overview
+- Protocol specification
 
 Server
 ===

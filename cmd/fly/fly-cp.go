@@ -14,6 +14,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ngagnon/flybywire/internal/wire"
 )
@@ -34,6 +35,11 @@ type fingerprintError struct {
 	changed     bool
 }
 
+type remoteFileInfo struct {
+	isFile bool
+}
+
+// @TODO: don't use wire.ReadValue
 func flycp(args []string) {
 	f := flag.NewFlagSet("cp", flag.ContinueOnError)
 	notls := f.Bool("notls", false, "Disable TLS")
@@ -115,27 +121,98 @@ func flycp(args []string) {
 	if source.host == "" {
 		upload(conn, source, dest)
 	} else {
-		download(source, dest)
+		download(conn, source, dest)
 	}
 }
 
-func download(source, dest target) {
-	// @TODO
-	fmt.Println("Download not supported yet.")
-	fmt.Println()
+func download(conn net.Conn, source target, dest target) {
+	info, found := statRemoteFile(conn, source.path)
+
+	if !found {
+		log.Fatalln("Remote: No such file or directory")
+	}
+
+	if !info.isFile {
+		log.Fatalln("Only regular file downloads are currently supported.")
+	}
+
+	dstInfo, err := os.Stat(dest.path)
+
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		log.Fatalf("%s: %v\n", dest.path, err)
+	}
+
+	if !errors.Is(err, os.ErrNotExist) && dstInfo.IsDir() {
+		dest.path = path.Join(dest.path, path.Base(source.path))
+	}
+
+	tmpPath := dest.path + ".fly-download"
+	f, err := os.Create(tmpPath)
+
+	if err != nil {
+		log.Fatalf("%s: %v\n", dest.path, err)
+	}
+
+	r := sendCommand(conn, "STREAM", "R", source.path)
+
+	if wireErr, ok := r.(*wire.Error); ok {
+		log.Fatalf("Remote: %s\n", wireErr.Message)
+	}
+
+	streamId := strconv.Itoa(r.(*wire.Integer).Value)
+
+	for {
+		val, err := wire.ReadValue(conn)
+
+		if err != nil {
+			log.Fatalf("Failed to read from socket: %v\n", err)
+		}
+
+		tagged, isTagged := val.(*wire.TaggedValue)
+
+		if !isTagged {
+			log.Fatalf("Unexpected %s, was expected tag\n", val.Name())
+		}
+
+		if tagged.Tag != streamId {
+			log.Fatalf("Unexpected stream ID %s\n", tagged.Tag)
+		}
+
+		if tagged.Value == wire.Null {
+			break
+		}
+
+		blob, isBlob := tagged.Value.(*wire.Blob)
+
+		if !isBlob {
+			log.Fatalf("Unexpected %s, was expected blob\n", tagged.Value.Name())
+		}
+
+		_, err = f.Write(blob.Data)
+
+		if err != nil {
+			log.Fatalf("Failed to write to %s: %v\n", dest.path, err)
+		}
+	}
+
+	f.Close()
+
+	err = os.Rename(tmpPath, dest.path)
+
+	if err != nil {
+		log.Fatalf("Rename failed: %v\n", err)
+	}
 }
 
 func upload(conn net.Conn, source target, dest target) {
 	info, err := os.Stat(source.path)
 
 	if err != nil {
-		fmt.Printf("%s: %v\n", source.path, err)
-		return
+		log.Fatalf("%s: %v\n", source.path, err)
 	}
 
 	if !info.Mode().IsRegular() {
-		fmt.Println("Only regular file uploads are currently supported.")
-		return
+		log.Fatalln("Only regular file uploads are currently supported.")
 	}
 
 	f, err := os.Open(source.path)
@@ -147,10 +224,8 @@ func upload(conn net.Conn, source target, dest target) {
 
 	defer f.Close()
 
-	buf := make([]byte, 32*1024)
-
 	// When copying to a folder, append the source filename to the destination path
-	if !isFileOrNotExist(conn, dest.path) {
+	if info, found := statRemoteFile(conn, dest.path); found && !info.isFile {
 		dest.path = path.Join(dest.path, path.Base(source.path))
 	}
 
@@ -161,6 +236,7 @@ func upload(conn net.Conn, source target, dest target) {
 	}
 
 	streamId := strconv.Itoa(r.(*wire.Integer).Value)
+	buf := make([]byte, 32*1024)
 
 	for {
 		n, err := f.Read(buf)
@@ -196,19 +272,21 @@ func upload(conn net.Conn, source target, dest target) {
 		if _, isErr := r.(*wire.Error); !isErr {
 			return
 		}
+
+		time.Sleep(10 * time.Millisecond)
 	}
 
 	fmt.Println("Unknown error occurred")
 }
 
-func isFileOrNotExist(conn net.Conn, remotePath string) bool {
+func statRemoteFile(conn net.Conn, remotePath string) (info remoteFileInfo, found bool) {
 	r := sendCommand(conn, "LIST", remotePath)
 
 	wireErr, isErr := r.(*wire.Error)
 
 	if isErr {
-		if wireErr.Code != "NOTFOUND" {
-			return true
+		if wireErr.Code == "NOTFOUND" {
+			return remoteFileInfo{}, false
 		} else {
 			log.Fatalf("Remote: %s\n", wireErr.Message)
 		}
@@ -217,7 +295,8 @@ func isFileOrNotExist(conn net.Conn, remotePath string) bool {
 	table, isTable := r.(*wire.Table)
 	fileName := path.Base(remotePath)
 
-	return fileName != "" &&
+	info = remoteFileInfo{}
+	info.isFile = fileName != "" &&
 		fileName != "/" &&
 		fileName != "." &&
 		fileName != ".." &&
@@ -225,6 +304,8 @@ func isFileOrNotExist(conn net.Conn, remotePath string) bool {
 		table.RowCount == 1 &&
 		table.Row(0)[0].(*wire.String).Value == "F" &&
 		table.Row(0)[1].(*wire.String).Value == fileName
+
+	return info, true
 }
 
 func trustPrompt(host string, fingerprint string) bool {
