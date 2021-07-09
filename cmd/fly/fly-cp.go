@@ -39,7 +39,6 @@ type remoteFileInfo struct {
 	isFile bool
 }
 
-// @TODO: don't use wire.ReadValue
 func flycp(args []string) {
 	f := flag.NewFlagSet("cp", flag.ContinueOnError)
 	notls := f.Bool("notls", false, "Disable TLS")
@@ -118,15 +117,17 @@ func flycp(args []string) {
 
 	defer conn.Close()
 
+	reader := wire.NewReader(conn)
+
 	if source.host == "" {
-		upload(conn, source, dest)
+		upload(conn, reader, source, dest)
 	} else {
-		download(conn, source, dest)
+		download(conn, reader, source, dest)
 	}
 }
 
-func download(conn net.Conn, source target, dest target) {
-	info, found := statRemoteFile(conn, source.path)
+func download(conn net.Conn, reader *wire.WireReader, source target, dest target) {
+	info, found := statRemoteFile(conn, reader, source.path)
 
 	if !found {
 		log.Fatalln("Remote: No such file or directory")
@@ -153,7 +154,7 @@ func download(conn net.Conn, source target, dest target) {
 		log.Fatalf("%s: %v\n", dest.path, err)
 	}
 
-	r := sendCommand(conn, "STREAM", "R", source.path)
+	r := sendCommand(conn, reader, "STREAM", "R", source.path)
 
 	if wireErr, ok := r.(*wire.Error); ok {
 		log.Fatalf("Remote: %s\n", wireErr.Message)
@@ -162,7 +163,7 @@ func download(conn net.Conn, source target, dest target) {
 	streamId := strconv.Itoa(r.(*wire.Integer).Value)
 
 	for {
-		val, err := wire.ReadValue(conn)
+		val, err := reader.Read()
 
 		if err != nil {
 			log.Fatalf("Failed to read from socket: %v\n", err)
@@ -204,7 +205,7 @@ func download(conn net.Conn, source target, dest target) {
 	}
 }
 
-func upload(conn net.Conn, source target, dest target) {
+func upload(conn net.Conn, reader *wire.WireReader, source target, dest target) {
 	info, err := os.Stat(source.path)
 
 	if err != nil {
@@ -225,11 +226,11 @@ func upload(conn net.Conn, source target, dest target) {
 	defer f.Close()
 
 	// When copying to a folder, append the source filename to the destination path
-	if info, found := statRemoteFile(conn, dest.path); found && !info.isFile {
+	if info, found := statRemoteFile(conn, reader, dest.path); found && !info.isFile {
 		dest.path = path.Join(dest.path, path.Base(source.path))
 	}
 
-	r := sendCommand(conn, "STREAM", "W", dest.path)
+	r := sendCommand(conn, reader, "STREAM", "W", dest.path)
 
 	if wireErr, ok := r.(*wire.Error); ok {
 		log.Fatalf("Remote: %s\n", wireErr.Message)
@@ -267,7 +268,7 @@ func upload(conn net.Conn, source target, dest target) {
 	}
 
 	for i := 0; i < 10; i++ {
-		r := sendCommand(conn, "LIST", dest.path)
+		r := sendCommand(conn, reader, "LIST", dest.path)
 
 		if _, isErr := r.(*wire.Error); !isErr {
 			return
@@ -279,8 +280,8 @@ func upload(conn net.Conn, source target, dest target) {
 	fmt.Println("Unknown error occurred")
 }
 
-func statRemoteFile(conn net.Conn, remotePath string) (info remoteFileInfo, found bool) {
-	r := sendCommand(conn, "LIST", remotePath)
+func statRemoteFile(conn net.Conn, reader *wire.WireReader, remotePath string) (info remoteFileInfo, found bool) {
+	r := sendCommand(conn, reader, "LIST", remotePath)
 
 	wireErr, isErr := r.(*wire.Error)
 

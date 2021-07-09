@@ -24,7 +24,7 @@ func connect(host string, disableTls bool) (net.Conn, error) {
 	}
 }
 
-func sendCommand(conn net.Conn, name string, args ...interface{}) wire.Value {
+func sendCommand(conn net.Conn, r *wire.WireReader, name string, args ...interface{}) wire.Value {
 	values := make([]wire.Value, len(args)+1)
 	values[0] = wire.NewString(name)
 
@@ -48,11 +48,11 @@ func sendCommand(conn net.Conn, name string, args ...interface{}) wire.Value {
 		log.Fatalf("Failed to write to socket: %v\n", err)
 	}
 
-	r, err := wire.ReadValue(conn)
+	res, err := r.Read()
 
 	if err != nil {
 		log.Fatalf("Failed to read from socket: %v\n", err)
 	}
 
-	return r
+	return res
 }
