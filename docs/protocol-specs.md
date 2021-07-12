@@ -4,10 +4,46 @@ Data Types
 String
 ---
 
+A `+` sign, followed by variable-length string, and terminated with a line feed (ASCII 10).
+
 +Lorem ipsum sit dolor amet<LF>
+
+Array
+---
+
+An asterisk (`*`), followed by the array length, a line feed, then the array elements.
+
+*2<LF>
++First element<LF>
++Second element<LF>
+
+Blob
+---
+
+A `$` sign, followed by the blob size (in bytes), the raw binary data, and then a line feed.
+
+$5<LF>
+hello<LF>
+
+Boolean
+---
+
+A `#` followed by t (true) or f (false).
+
+#t<LF>
+#f<LF>
+
+Integer
+---
+
+A colon (`:`), followed by the integer, then a line feed.
+
+:42<LF>
 
 Map
 ---
+
+A `%` sign, followed by the number of key value pairs, a line feed, then alternating key-values.
 
 %2<LF>
 +First key<LF>
@@ -15,17 +51,12 @@ Map
 +Second key<LF>
 +Second value<LF>
 
-Array
----
-
-*2<LF>
-+First element<LF>
-+Second element<LF>
-
 Table
 ---
 
-Simply a two-dimensional array.
+A two-dimensional array.
+
+A `=` sign, followed by the number of rows, then the number of columns, a line field, and then all the table values.
 
 =2,3<LF>
 +Row 1, column 1<LF>
@@ -38,30 +69,14 @@ Simply a two-dimensional array.
 Error
 ---
 
+A `-` sign, followed by the error code, a space, the error message, then a line feed.
+
 -CODE The super duper error message<LF>
-
-Blob
----
-
-Dollar sign, followed by length of string, followed by line feed
-Then the raw binary data, followed by a final line feed.
-
-$5<LF>
-hello<LF>
-
-Boolean
----
-
-#t<LF>
-#f<LF>
-
-Integer
----
-
-:42<LF>
 
 Null
 ---
+
+An underscore, followed by a line feed.
 
 _<LF>
 
@@ -70,18 +85,10 @@ Tag
 
 Annotates another value.
 
+A `@`, followed by the tag, then a line feed, and another value.
+
 @22<LF>
 +Some other value
-
-Protocol
-===
-
-The protocol is request-response.
-
-The client starts by sending an array, where the first element is a string
-representing the command name (case insensitive).
-
-Then, the server will respond with some value, depending on the command.
 
 Connection Management
 ===

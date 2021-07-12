@@ -1,11 +1,7 @@
-- README:
-    - TLS by default
-    - Polish up
-- Publish!
-
+- Rename Table to Matrix
 - STREAM W command should return @streamID\n+OK\n upon completion
 - STREAM W should first create a $FILE.fly-upload file in the correct folder, then rename it (instead of using /tmp)
-- When downloading a file in the client, it's not very efficient to allocate a []byte with every chunk
+- When transferring blobs over the network, both client & server are doing new allocations with every blob... probably quite costly
 - Continue CLI client
     - Upload & download of multiple files (* glob), folders, recursive, etc.
     - fly to HOST

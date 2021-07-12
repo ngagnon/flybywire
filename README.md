@@ -1,4 +1,4 @@
-Fly-by-wire (abbreviated Fly) is a simple file transfer protocol for the modern age. The repo includes the protocol specification, as well as reference client & server implementations.
+Fly-by-wire (abbreviated Fly) is a file transfer protocol for the modern age. The repo includes the protocol specification, as well as reference client & server implementations.
 
 The project's main ambition is to address some of the shortcomings of the FTP protocol. It's main selling points include:
 
@@ -23,30 +23,57 @@ Client:
 
 - Only supports file upload & download
 
-Further Reading
+Building
 ===
 
-- Protocol overview
-- Protocol specification
+```
+make fly-server
+make fly
+```
 
-Server
+The binaries will be compiled to the `bin/` folder.
+
+Using the Server
 ===
 
 Usage: fly-server ROOTDIR
 
-The Fly server operates within a root directory on the machine. It should
-have full read/write access inside it.
+Start serving files from ROOTDIR. 
 
-Users and ACL rules are stored directly inside the root dir by default,
-under a folder named .fly (invisible to clients).
+The user initiating that command needs to have full read/write access to ROOTDIR.
 
-The server responds to port 6767 by default. It encrypts connections
-with TLS by default
+Users and ACL rules are stored directly inside the root directory, under a hidden folder named .fly (invisible to clients).
+
+By default, the server listens to port 6767 with TLS enabled.
 
 Options:
 
--port: change the port number
--notls: disables TLS
+- **-port**: change the port number
+- **-notls**: disable TLS (not recommended)
+- **-debug**: enable debug logging
 
+Using the Client
+===
 
+Usage: fly cp SOURCE DEST
 
+Copies SOURCE to DEST.
+
+Use the "//" prefix to denote remote paths, e.g.:
+
+```
+//files.example.com:1234/some/path/file.txt
+```
+
+Transfers between two Fly servers, or between two local paths are not currently supported.
+
+Options:
+
+- **-notls**: disable TLS (not recommended)
+
+Further Reading
+===
+
+- [Protocol overview](docs/protocol-overview.md)
+- [Protocol specification](docs/protocol-specs.md)
+- [Access control](docs/access-control.md)

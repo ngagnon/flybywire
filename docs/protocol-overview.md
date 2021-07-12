@@ -1,31 +1,28 @@
 Protocol Overview
 ===
 
-The protocol is heavily inspired by the Redis serialization protocol. It is both human readable and machine parsable, yet it adds little overhead compared to a binary protocol.
+At its core, Fly is a fairly simple request-response protocol running over TCP. Its default port number is 6767. Connections are encrypted with TLS unless specified otherwise.
 
-@TODO: more about the raw protocol
+It uses a serialization format that is both human readable and machine parsable, yet adds little overhead compared to conventional binary protocols.
 
-It supports:
+The serialization format can encode common data types such as strings, binary blobs, booleans, integers, maps, arrays, and tables. It is heavily inspired by the Redis protocol. Refer to protocol specifications to learn more about the serialization format.
+
+The client sends commands in the form of an array, with the command name passed as the first element.
+
+The server then responds to the command with a data type appropriate for that particular command. Commands will often return the string OK to denote success, or an error message if the command failed.
+
+Although commands are executed serially by the server, the client need not wait for the server to reply before sending its next command. This is sometimes known as pipelining.
+
+The Fly protocol supports a wide range of commands:
 
 - File operations (add, delete, update)
 - ACL operations (grant, revoke, etc.)
 - User management operations (add, delete, update)
 - Efficient synchronization (similar to rsync)
 
-Files can be downloaded and uploaded using chunk encoding.
+They are described in more details in the protocol specifications.
 
-By default, the server starts out in single-user mode, where anyone who connects to the server can do whatever they want.
 
-As soon as the first admin user is created, the server switches to multi-user mode, where everything becomes denied by default, and ACL allow rules must be
-created.
 
-Users can be chrooted to a specific directory. Users can have quotas as well.
 
-Automatic ACL rules can be created based on the username, for instance to
-give each user full access to the folder with their name.
-
-When evaluating the ACLs on a file or folder, the least permissive ACL
-is used?
-
-The default port number is 6767.
 
